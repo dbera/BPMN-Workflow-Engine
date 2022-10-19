@@ -1,0 +1,12 @@
+Manifest-Version: 1.0
+Bundle-ManifestVersion: 2
+Bundle-Name: Bpm
+Bundle-SymbolicName: org.camunda.bpm.model.bpmn
+Bundle-Version: 1.0.0.qualifier
+Export-Package: org.camunda.bpm.model.bpmn,
+ org.camunda.bpm.model.bpmn.builder,
+ org.camunda.bpm.model.bpmn.instance,
+ org.camunda.bpm.model.bpmn.instance.camunda
+Require-Bundle: org.camunda.bpm.model.xml;bundle-version="1.0.0"
+Automatic-Module-Name: org.camunda.bpm
+Bundle-RequiredExecutionEnvironment: JavaSE-14
