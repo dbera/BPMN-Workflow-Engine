@@ -1,0 +1,12 @@
+Manifest-Version: 1.0
+Bundle-ManifestVersion: 2
+Bundle-Name: Engine
+Bundle-SymbolicName: bpmn.workflow.engine
+Bundle-Version: 1.0.0.qualifier
+Import-Package: org.slf4j
+Require-Bundle: org.camunda.bpm.modeler;bundle-version="3.0.0",
+ org.projectlombok.agent;bundle-version="1.18.24",
+ org.camunda.bpm.model.bpmn;bundle-version="1.0.0",
+ org.camunda.bpm.model.xml;bundle-version="1.0.0"
+Automatic-Module-Name: bpmn.workflow.engine
+Bundle-RequiredExecutionEnvironment: JavaSE-14
