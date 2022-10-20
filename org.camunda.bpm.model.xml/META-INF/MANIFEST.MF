@@ -13,7 +13,7 @@ Export-Package: org.camunda.bpm.model.xml,
  org.camunda.bpm.model.xml.type.attribute,
  org.camunda.bpm.model.xml.type.child,
  org.camunda.bpm.model.xml.type.reference
-Require-Bundle: org.junit;bundle-version="4.13.2",
- org.eclipse.pde.junit.runtime;bundle-version="3.6.200"
+Require-Bundle: wrapped.junit.junit;bundle-version="4.12.0",
+ assertj-core;bundle-version="3.23.1"
 Automatic-Module-Name: org.camunda.bpm.model.xml
 Bundle-RequiredExecutionEnvironment: JavaSE-14
