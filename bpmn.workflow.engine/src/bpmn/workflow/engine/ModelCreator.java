@@ -6,6 +6,8 @@ import org.camunda.bpm.model.bpmn.BpmnModelInstance;
 import org.camunda.bpm.model.bpmn.instance.FlowElement;
 import org.camunda.bpm.model.bpmn.instance.Gateway;
 import org.camunda.bpm.model.bpmn.instance.UserTask;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.File;
 
@@ -16,6 +18,7 @@ public class ModelCreator {
     public static void main(String[] args) {
 
         BpmnModelInstance modelInst;
+        Logger log = LoggerFactory.getLogger(ModelCreator.class);
         try {
         // File file = new File(ModelModifier.class.getClassLoader().getResource("process1.bpmn").toURI());
             File file = new File("./src/main/resources/process1.bpmn");

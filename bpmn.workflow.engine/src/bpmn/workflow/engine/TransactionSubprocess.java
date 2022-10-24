@@ -6,6 +6,8 @@ import org.camunda.bpm.model.bpmn.BpmnModelInstance;
 import org.camunda.bpm.model.bpmn.instance.CancelEventDefinition;
 import org.camunda.bpm.model.bpmn.instance.SubProcess;
 import org.camunda.bpm.model.xml.instance.ModelElementInstance;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.File;
 
@@ -18,6 +20,7 @@ public class TransactionSubprocess {
     public static void main(String[] args) {
 
         BpmnModelInstance modelInst;
+        Logger log = LoggerFactory.getLogger(TransactionSubprocess.class);
         try {
 //        File file = new File(ModelModifier.class.getClassLoader().getResource("testDiagram.bpmn").toURI());
             File file = new File("./src/main/resources/transaction.bpmn");

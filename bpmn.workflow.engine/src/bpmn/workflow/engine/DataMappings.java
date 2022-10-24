@@ -8,18 +8,20 @@ import org.camunda.bpm.model.bpmn.instance.UserTask;
 import org.camunda.bpm.model.bpmn.instance.camunda.CamundaInputParameter;
 import org.camunda.bpm.model.bpmn.instance.camunda.CamundaOutputParameter;
 import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import java.io.File;
 
 @Slf4j
 public class DataMappings {
 
   public static final String FILENAME = "./src/main/resources/datamappings.bpmn";
-
   // @see https://docs.camunda.org/manual/latest/user-guide/model-api/bpmn-model-api/fluent-builder-api/
   public static void main(String[] args) {
 
 //        createModel();
-
+	  Logger log = LoggerFactory.getLogger(DataMappings.class);
+	  
     BpmnModelInstance modelInst;
     try {
       File file = new File(FILENAME);
@@ -53,7 +55,7 @@ public class DataMappings {
     }
   }
 
-  private static void createModel() {
+  private static void createModel(Logger log) {
     BpmnModelInstance modelInst;
     try {
       File file = new File(FILENAME);

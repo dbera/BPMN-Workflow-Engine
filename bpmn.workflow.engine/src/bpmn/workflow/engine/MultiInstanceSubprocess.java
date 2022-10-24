@@ -5,6 +5,8 @@ import org.camunda.bpm.model.bpmn.Bpmn;
 import org.camunda.bpm.model.bpmn.BpmnModelInstance;
 import org.camunda.bpm.model.bpmn.builder.MultiInstanceLoopCharacteristicsBuilder;
 import org.camunda.bpm.model.bpmn.instance.*;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.File;
 
@@ -17,6 +19,7 @@ public class MultiInstanceSubprocess {
   public static void main(String[] args) {
 
     BpmnModelInstance modelInst;
+    Logger log = LoggerFactory.getLogger(MultiInstanceSubprocess.class);
     try {
       File file = new File("./src/main/resources/multiInstance.bpmn");
       modelInst = Bpmn.createProcess()
