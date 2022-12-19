@@ -22,7 +22,10 @@ package org.camunda.bpm.model.bpmn.instance;
  * @author Sebastian Menski
  */
 public interface ItemAwareElement extends BaseElement {
-
+	//Luna: name extension of data ref
+	String getName();
+	void setName(String name);
+	
   ItemDefinition getItemSubject();
 
   void setItemSubject(ItemDefinition itemSubject);
