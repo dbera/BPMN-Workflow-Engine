@@ -4,7 +4,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 public class Patterns {
-	public String name = "graph";
+	public String name = "graph1";
 	private List<ProcessTask> tasks = new ArrayList<ProcessTask>();
 	private List<Edge> edges = new ArrayList<Edge>();
 	private List<Vertex> vertices = new ArrayList<Vertex>();

@@ -135,6 +135,13 @@ public class DemoBPMNParser {
 		for(IntermediateThrowEvent te: teList) {
 			parseEvent(te, p);
 		}
+		
+		for(DataStoreReference dsRef: dsRefs) {
+			parseDataStoreRef(dsRef, p);
+		}
+		for(DataObjectReference doRef: doRefs) {
+			parseDataObjectRef(doRef, p);
+		}
 		patternList.add(p);
 	}
 	
@@ -191,6 +198,16 @@ public class DemoBPMNParser {
 				parseEvent(te, p);
 			}
 		}
+		for(DataStoreReference dsRef: dsRefs) {
+			if(dsRef.getParentElement().getElementType().getTypeName() != "subProcess") {
+				parseDataStoreRef(dsRef, p);
+			}
+		}
+		for(DataObjectReference doRef: doRefs) {
+			if(doRef.getParentElement().getElementType().getTypeName() != "subProcess") {
+				parseDataObjectRef(doRef, p);
+			}
+		}
 		patternList.add(p);
 	}
 
@@ -237,7 +254,40 @@ public class DemoBPMNParser {
 		for(IntermediateThrowEvent te: teList) {
 			parseEvent(te, p);
 		}
+		
+		for(DataStoreReference dsRef: dsRefs) {
+			parseDataStoreRef(dsRef, p);
+		}
+		
+		for(DataObjectReference doRef: doRefs) {
+			parseDataObjectRef(doRef, p);
+		}
+		
 		patternList.add(p);
+	}
+	
+	private static void parseDataStoreRef(DataStoreReference dsRef, Patterns p) {
+		String name = "dataStore";
+		if(dsRef.getName() != null) {
+			name = dsRef.getName();
+		} else {
+			name = dsRef.getId();
+		}
+		Vertex v = new Vertex(name);
+		v.setType(TaskType.DATA_STORE);
+		p.addVertex(v);
+	}
+	
+	private static void parseDataObjectRef(DataObjectReference doRef, Patterns p) {
+		String name = "dataObject";
+		if(doRef.getName() != null) {
+			name = doRef.getName();
+		} else {
+			name = doRef.getId();
+		}
+		Vertex v = new Vertex(name);
+		v.setType(TaskType.DATA_OBJECT);
+		p.addVertex(v);
 	}
 	
 	private static void parseGateway(Gateway gw, Patterns p) {
