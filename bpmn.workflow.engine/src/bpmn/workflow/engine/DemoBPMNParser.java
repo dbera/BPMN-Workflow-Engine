@@ -4,18 +4,20 @@ import java.net.URL;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
-import java.util.Set;
 
 import org.camunda.bpm.model.bpmn.Bpmn;
 import org.camunda.bpm.model.bpmn.BpmnModelInstance;
+import org.camunda.bpm.model.bpmn.instance.Activity;
 import org.camunda.bpm.model.bpmn.instance.BoundaryEvent;
 import org.camunda.bpm.model.bpmn.instance.DataInputAssociation;
 import org.camunda.bpm.model.bpmn.instance.DataObjectReference;
 import org.camunda.bpm.model.bpmn.instance.DataOutputAssociation;
 import org.camunda.bpm.model.bpmn.instance.DataStoreReference;
+import org.camunda.bpm.model.bpmn.instance.EndEvent;
 import org.camunda.bpm.model.bpmn.instance.Event;
 import org.camunda.bpm.model.bpmn.instance.ExclusiveGateway;
 import org.camunda.bpm.model.bpmn.instance.FlowElement;
+import org.camunda.bpm.model.bpmn.instance.FlowNode;
 import org.camunda.bpm.model.bpmn.instance.Gateway;
 import org.camunda.bpm.model.bpmn.instance.IntermediateCatchEvent;
 import org.camunda.bpm.model.bpmn.instance.IntermediateThrowEvent;
@@ -26,6 +28,7 @@ import org.camunda.bpm.model.bpmn.instance.ServiceTask;
 import org.camunda.bpm.model.bpmn.instance.StartEvent;
 import org.camunda.bpm.model.bpmn.instance.SubProcess;
 import org.camunda.bpm.model.bpmn.instance.Task;
+import org.camunda.bpm.model.xml.instance.DomElement;
 
 import bpmn.workflow.engine.taskgraph.Patterns;
 import bpmn.workflow.engine.taskgraph.TaskType;
@@ -33,7 +36,7 @@ import bpmn.workflow.engine.taskgraph.Vertex;
 public class DemoBPMNParser {
 	
 	static List<Patterns> patternList = new ArrayList<Patterns>();
-	static boolean expanded = false;//if true then all layers are printed to one task graph, false(print for each layer)
+	static boolean flat = true;//if true then all layers are printed to one task graph, false(print for each layer)
 
 	public static void logInfo(String str) { System.out.println(str); }
 
@@ -42,7 +45,7 @@ public class DemoBPMNParser {
 		BPMNElementsParser parser = new BPMNElementsParser();
         BpmnModelInstance modelInst;
         try {
-        	URL resource = DemoBPMNParser.class.getClassLoader().getResource("diagram_subP.bpmn");
+        	URL resource = DemoBPMNParser.class.getClassLoader().getResource("diagram_2.bpmn");
         	File file = new File(resource.toURI());
         	modelInst = Bpmn.readModelFromFile(file);
         	logInfo(modelInst.getModel().getModelName());
@@ -80,10 +83,10 @@ public class DemoBPMNParser {
 	
 	public static void parseBPMN(BpmnModelInstance modelInst) {
 		BPMNParser parser = new BPMNParser();
-   		if(expanded) {
-   			getExpandedPatterns(modelInst);
+   		if(flat) {
+   			getFlatPatterns(modelInst);
    		} else {
-   			getCollapsedPatterns(modelInst);
+   			getMultiLayerPatterns(modelInst);
    			Collection<SubProcess> subProcessList = parser.getSubProcesses(modelInst);
    			for(SubProcess sp: subProcessList) {
    				getSubPatterns(sp);
@@ -103,7 +106,7 @@ public class DemoBPMNParser {
 		Collection<DataObjectReference> doRefs = sp.getChildElementsByType(DataObjectReference.class);
 		Collection<ExclusiveGateway> exGateList = sp.getChildElementsByType(ExclusiveGateway.class);
 		Collection<ParallelGateway> parGateList = sp.getChildElementsByType(ParallelGateway.class);
-		
+		Collection<SubProcess> subProcessList = sp.getChildElementsByType(SubProcess.class);
 		//add vertices of type task (activity, gateway, timer/signals/messages), data reference
 		for(Task t : taskList) {
 			if(t.getName() != null) {
@@ -116,6 +119,12 @@ public class DemoBPMNParser {
 				parseServiceTask(t, p);
 			}
 		}
+		
+		for(SubProcess subp: subProcessList) {
+			if(subp.getName() != null) {
+				parseSubProcess(subp, p);
+			}
+		}
 		for(ExclusiveGateway eg : exGateList) {
 			parseGateway(eg, p);
 		}
@@ -125,7 +134,7 @@ public class DemoBPMNParser {
 		}
 		
 		for(BoundaryEvent be : beList) {
-			parseEvent(be, p);
+			parseBoundaryEvent(be, p);
 		}
 		
 		for(IntermediateCatchEvent ce: ceList) {
@@ -145,7 +154,7 @@ public class DemoBPMNParser {
 		patternList.add(p);
 	}
 	
-	private static void getCollapsedPatterns(BpmnModelInstance modelInst) {
+	private static void getMultiLayerPatterns(BpmnModelInstance modelInst) {
 		BPMNParser parser = new BPMNParser();
 		Patterns p = new Patterns();
 		Collection<Task> taskList = parser.getTask(modelInst);
@@ -157,6 +166,7 @@ public class DemoBPMNParser {
 		Collection<DataObjectReference> doRefs = parser.getDataObjectReference(modelInst);
 		Collection<ExclusiveGateway> exGateList = parser.getExclusiveGateWay(modelInst);
 		Collection<ParallelGateway> parGateList = parser.getParallelGateWay(modelInst);
+		Collection<SubProcess> subProcessList = parser.getSubProcesses(modelInst);
 		//add vertices of type task (activity, gateway, timer/signals/messages), data reference
 		for(Task t : taskList) {
 			if(t.getName() != null && t.getParentElement().getElementType().getTypeName() != "subProcess") {
@@ -167,6 +177,11 @@ public class DemoBPMNParser {
 		for(ServiceTask t : serviceTaskList) {
 			if(t.getName() != null && t.getParentElement().getElementType().getTypeName() != "subProcess") {
 				parseServiceTask(t, p);
+			}
+		}
+		for(SubProcess subp: subProcessList) {
+			if(subp.getName() != null && subp.getParentElement().getElementType().getTypeName() != "subProcess") {
+				parseSubProcess(subp, p);
 			}
 		}
 		for(ExclusiveGateway eg : exGateList) {
@@ -183,7 +198,7 @@ public class DemoBPMNParser {
 		
 		for(BoundaryEvent be : beList) {
 			if(be.getParentElement().getElementType().getTypeName() != "subProcess") {
-				parseEvent(be, p);
+				parseBoundaryEvent(be, p);
 			}
 		}
 		
@@ -211,7 +226,7 @@ public class DemoBPMNParser {
 		patternList.add(p);
 	}
 
-	private static void getExpandedPatterns(BpmnModelInstance modelInst) {
+	private static void getFlatPatterns(BpmnModelInstance modelInst) {
 		BPMNParser parser = new BPMNParser();
 		Patterns p = new Patterns();
 		Collection<Task> taskList = parser.getTask(modelInst);
@@ -223,6 +238,9 @@ public class DemoBPMNParser {
 		Collection<DataObjectReference> doRefs = parser.getDataObjectReference(modelInst);
 		Collection<ExclusiveGateway> exGateList = parser.getExclusiveGateWay(modelInst);
 		Collection<ParallelGateway> parGateList = parser.getParallelGateWay(modelInst);
+		Collection<SubProcess> subProcessList = parser.getSubProcesses(modelInst);
+		Collection<StartEvent> startEvts = parser.getStartEvents(modelInst);
+		Collection<EndEvent> endEvts = parser.getEndEvents(modelInst);
 		//add vertices of type task (activity, gateway, timer/signals/messages), data reference
 		for(Task t : taskList) {
 			if(t.getName() != null) {
@@ -235,6 +253,19 @@ public class DemoBPMNParser {
 				parseServiceTask(t, p);
 			}
 		}
+		
+		for(SubProcess subp: subProcessList) {
+			if(subp.getName() != null) {
+				if (!containProcedure(subp)) {
+					//logInfo("Empty subprocess " + subp.getName());
+					parseSubProcess(subp, p);
+				} else {
+					//logInfo("Subprocess procedure " + subp.getName());
+					flatSubProcess(subp, p);
+				}
+			}
+		}
+		
 		for(ExclusiveGateway eg : exGateList) {
 			parseGateway(eg, p);
 		}
@@ -244,7 +275,7 @@ public class DemoBPMNParser {
 		}
 		
 		for(BoundaryEvent be : beList) {
-			parseEvent(be, p);
+			parseBoundaryEvent(be, p);
 		}
 		
 		for(IntermediateCatchEvent ce: ceList) {
@@ -263,13 +294,59 @@ public class DemoBPMNParser {
 			parseDataObjectRef(doRef, p);
 		}
 		
+		for(StartEvent se: startEvts) {
+			parseEvent(se, p);
+		}
+		
+		for(EndEvent ee: endEvts) {
+			parseEvent(ee, p);
+		}
+		
 		patternList.add(p);
 	}
 	
+	private static void flatSubProcess(SubProcess subp, Patterns p) {
+		Collection<SequenceFlow> sfiList = subp.getIncoming();
+		Collection<SequenceFlow> sfoList = subp.getOutgoing();
+		
+		for (SequenceFlow sf: sfiList) {
+			if (sf.getSource() instanceof Task || sf.getSource() instanceof ServiceTask 
+					|| sf.getSource() instanceof Gateway || sf.getSource() instanceof StartEvent) {
+				Collection<StartEvent> seList = subp.getChildElementsByType(StartEvent.class);
+				String expression = sf.getName()==null ? "": sf.getName();
+				for(StartEvent se : seList) {
+					p.addEdge(getElementName(sf.getSource()), getElementName(se), expression);
+				}
+			}
+			if (sf.getSource() instanceof SubProcess) {
+				Collection<EndEvent> eeList = sf.getSource().getChildElementsByType(EndEvent.class);
+				Collection<StartEvent> seList = subp.getChildElementsByType(StartEvent.class);
+				String expression = sf.getName()==null ? "": sf.getName();
+				for(EndEvent ee : eeList) {
+					for(StartEvent se : seList) {
+						p.addEdge(getElementName(ee), getElementName(se), expression);
+					}
+				}
+			}
+		}
+		
+		for (SequenceFlow sf: sfoList) {
+			if (sf.getTarget() instanceof Task || sf.getTarget() instanceof ServiceTask
+					|| sf.getTarget() instanceof Gateway || sf.getTarget() instanceof EndEvent) {
+				Collection<EndEvent> eeList = subp.getChildElementsByType(EndEvent.class);
+				String expression = sf.getName()==null ? "": sf.getName();
+				for(EndEvent eevt: eeList) {
+					p.addEdge(getElementName(eevt), getElementName(sf.getTarget()), expression);
+				}
+			}
+			//p.addEdge(t.getName(), sf.getTarget().getName(), sf.getName());
+		}
+	}
+
 	private static void parseDataStoreRef(DataStoreReference dsRef, Patterns p) {
 		String name = "dataStore";
 		if(dsRef.getName() != null) {
-			name = dsRef.getName();
+			name = getElementName(dsRef);
 		} else {
 			name = dsRef.getId();
 		}
@@ -281,7 +358,7 @@ public class DemoBPMNParser {
 	private static void parseDataObjectRef(DataObjectReference doRef, Patterns p) {
 		String name = "dataObject";
 		if(doRef.getName() != null) {
-			name = doRef.getName();
+			name = getElementName(doRef);
 		} else {
 			name = doRef.getId();
 		}
@@ -293,7 +370,7 @@ public class DemoBPMNParser {
 	private static void parseGateway(Gateway gw, Patterns p) {
 		String name = "gateway";
 		if(gw.getName() != null) {
-			name = gw.getName();
+			name = getElementName(gw);
 		} else {
 			name = gw.getId();
 		}
@@ -308,97 +385,239 @@ public class DemoBPMNParser {
 		Collection<SequenceFlow> sfoList = gw.getOutgoing();
 		
 		for (SequenceFlow sf: sfiList) {
-			v.addIncomingEdge(getElementName(sf.getSource()), "");
-			p.addEdge(getElementName(sf.getSource()), name, "");
+			String expression = sf.getName()==null ? "": sf.getName();
+			if (flat) {
+				if (!containProcedure(sf.getSource())) {
+					v.addIncomingEdge(getElementName(sf.getSource()), expression);
+					p.addEdge(getElementName(sf.getSource()), name, expression);
+				}
+			} else {
+				v.addIncomingEdge(getElementName(sf.getSource()), expression);
+				p.addEdge(getElementName(sf.getSource()), name, expression);
+			}
 		}
 		
 		for (SequenceFlow sf: sfoList) {
-			v.addOutgoingEdge(getElementName(sf.getTarget()), "");
-			//p.addEdge(gw.getName(), sf.getTarget().getName(), sf.getName());
+			String expression = sf.getName()==null ? "": sf.getName();
+			if (flat) {
+				if (!containProcedure(sf.getTarget())) {
+					v.addOutgoingEdge(getElementName(sf.getTarget()), expression);
+				}
+			} else {
+				v.addOutgoingEdge(getElementName(sf.getTarget()), expression);
+			}
 		}
 		p.addVertex(v);
+	}
+	
+	private static void parseBoundaryEvent(BoundaryEvent evt, Patterns p) {
+		String name = "boundaryEvent";
+		if(evt.getName() != null) {
+			name = getElementName(evt);
+		} else {
+			name = evt.getId();
+		}
+		Vertex v = new Vertex(name);
+		v.setType(TaskType.BOUNDARY_EVENT);
+		
+		Collection<SequenceFlow> sfiList = evt.getIncoming();
+		Collection<SequenceFlow> sfoList = evt.getOutgoing();
+		
+		for (SequenceFlow sf: sfiList) {
+			if (flat) {
+				if (!containProcedure(sf.getSource())) {
+					String expression = sf.getName()==null ? "": sf.getName();
+					v.addIncomingEdge(getElementName(sf.getSource()), expression);
+					p.addEdge(getElementName(sf.getSource()), name, expression);
+				}
+			} else {
+				String expression = sf.getName()==null ? "": sf.getName();
+				v.addIncomingEdge(getElementName(sf.getSource()), expression);
+				p.addEdge(getElementName(sf.getSource()), name, expression);
+			}
+		}
+		
+		for (SequenceFlow sf: sfoList) {
+			if (flat) {
+				if (!containProcedure(sf.getTarget())) {
+					String expression = sf.getName()==null ? "": sf.getName();
+					v.addOutgoingEdge(getElementName(sf.getTarget()), expression);
+				}
+			} else {
+				String expression = sf.getName()==null ? "": sf.getName();
+				v.addOutgoingEdge(getElementName(sf.getTarget()), expression);
+			}
+			
+		}
+		Activity act = evt.getAttachedTo();
+		v.addIncomingEdge(getElementName(act), "");
+		p.addEdge(getElementName(act), name, "");
+		p.addVertex(v);
+		
 	}
 	
 	private static void parseEvent(Event evt, Patterns p) {
 		String name = "event";
 		if(evt.getName() != null) {
-			name = evt.getName();
+			name = getElementName(evt);
 		} else {
 			name = evt.getId();
 		}
 		Vertex v = new Vertex(name);
-		if(evt instanceof BoundaryEvent) {
-			v.setType(TaskType.BOUNDARY_EVENT);
-		} else if (evt instanceof IntermediateCatchEvent) {
+		if (evt instanceof IntermediateCatchEvent) {
 			v.setType(TaskType.CATCH_EVENT);
 		} else if (evt instanceof IntermediateThrowEvent) {
 			v.setType(TaskType.THROW_EVENT);
+		} else if (evt instanceof StartEvent){
+			v.setType(TaskType.START_EVENT);
+		} else if (evt instanceof EndEvent) {
+			v.setType(TaskType.END_EVENT);
 		}
+		
 		Collection<SequenceFlow> sfiList = evt.getIncoming();
 		Collection<SequenceFlow> sfoList = evt.getOutgoing();
 		
 		for (SequenceFlow sf: sfiList) {
-			v.addIncomingEdge(getElementName(sf.getSource()), "");
-			p.addEdge(getElementName(sf.getSource()), name, "");
+			String expression = sf.getName()==null ? "": sf.getName();
+			if (flat) {
+				if (!containProcedure(sf.getSource())) {
+					v.addIncomingEdge(getElementName(sf.getSource()), expression);
+					p.addEdge(getElementName(sf.getSource()), name, expression);
+				}
+			} else {
+				v.addIncomingEdge(getElementName(sf.getSource()), expression);
+				p.addEdge(getElementName(sf.getSource()), name, expression);
+			}
 		}
 		
 		for (SequenceFlow sf: sfoList) {
-			v.addOutgoingEdge(getElementName(sf.getTarget()), "");
-			//p.addEdge(evt.getName(), sf.getTarget().getName(), "");
+			String expression = sf.getName()==null ? "": sf.getName();
+			if (flat) {
+				if (!containProcedure(sf.getTarget())) {
+					v.addOutgoingEdge(getElementName(sf.getTarget()), expression);
+				}
+			} else {
+				v.addOutgoingEdge(getElementName(sf.getTarget()), expression);
+			}
 		}
 		p.addVertex(v);
 	}
 	
 	private static void parseServiceTask(ServiceTask t, Patterns p) {
-		Vertex v = new Vertex(t.getName().replace(" ", "_"), TaskType.SERVICE_TASK);
+		Vertex v = new Vertex(getElementName(t), TaskType.SERVICE_TASK);
 		Collection<SequenceFlow> sfiList = t.getIncoming();
 		Collection<SequenceFlow> sfoList = t.getOutgoing();
 		Collection<DataInputAssociation> diaList =  t.getDataInputAssociations();
 		Collection<DataOutputAssociation> doaList =  t.getDataOutputAssociations();
 		
 		for (SequenceFlow sf: sfiList) {
-			v.addIncomingEdge(getElementName(sf.getSource()), "");
-			p.addEdge(getElementName(sf.getSource()), t.getName().replace(" ", "_"), "");
+			String expression = sf.getName()==null ? "": sf.getName();
+			if(flat) {
+				if(!containProcedure(sf.getSource())) {
+					v.addIncomingEdge(getElementName(sf.getSource()), expression);
+					p.addEdge(getElementName(sf.getSource()), getElementName(t), expression);
+				}
+			} else {
+				v.addIncomingEdge(getElementName(sf.getSource()), expression);
+				p.addEdge(getElementName(sf.getSource()), getElementName(t), expression);
+			}
 		}
 		
 		for (SequenceFlow sf: sfoList) {
-			v.addOutgoingEdge(getElementName(sf.getTarget()), "");
-			//p.addEdge(t.getName(), sf.getTarget().getName(), sf.getName());
+			String expression = sf.getName()==null ? "": sf.getName();
+			if(flat) {
+				if(!containProcedure(sf.getTarget())) {
+					v.addOutgoingEdge(getElementName(sf.getTarget()), expression);
+				}
+			} else {
+				v.addOutgoingEdge(getElementName(sf.getTarget()), expression);
+			}
 		}
 		
 		for(DataInputAssociation dia : diaList) {
 			String expression = "";
-			if (dia.getAttributeValue("expression") != null) {
-				expression = dia.getAttributeValue("expression");
+			if (dia.getAttributeValueNs("http://magic", "expression") != null) {
+				expression = dia.getAttributeValueNs("http://magic", "expression");
 			}
 			for(ItemAwareElement elm : dia.getSources()) {
-				v.addIncomingEdge(elm.getId(), expression);
-				p.addEdge(elm.getId(), t.getName().replace(" ", "_"), expression);
-				logInfo(" DIA: " + elm.getId());
+				v.addIncomingEdge(getDataName(elm), expression);
+				p.addEdge(getDataName(elm), getElementName(t), expression);
 			}
 		}
 		for(DataOutputAssociation doa : doaList) {
 			String expression = "";
-			if (doa.getAttributeValue("expression") != null) {
-				expression = doa.getAttributeValue("expression");
+			if (doa.getAttributeValueNs("http://magic", "expression") != null) {
+				expression = doa.getAttributeValueNs("http://magic", "expression");
 			}
 			v.addOutgoingEdge(doa.getTarget().getId(), expression);
 			//p.addEdge(t.getName(), doa.getTarget().getId(), expression);
-			logInfo(" DOA: " + doa.getTarget().getId());
 		}
 		p.addVertex(v);
 	}
 	
 	private static void parseTasks(Task t, Patterns p) {
-		Vertex v = new Vertex(t.getName().replace(" ", "_"), TaskType.TASK);
+		Vertex v = new Vertex(getElementName(t), TaskType.TASK);
 		Collection<SequenceFlow> sfiList = t.getIncoming();
 		Collection<SequenceFlow> sfoList = t.getOutgoing();
 		Collection<DataInputAssociation> diaList =  t.getDataInputAssociations();
 		Collection<DataOutputAssociation> doaList =  t.getDataOutputAssociations();
 		
 		for (SequenceFlow sf: sfiList) {
+			String expression = sf.getName()==null ? "": sf.getName();
+			if(flat) {
+				if(!containProcedure(sf.getSource())) {
+					v.addIncomingEdge(getElementName(sf.getSource()), expression);
+					p.addEdge(getElementName(sf.getSource()), getElementName(t), expression);
+				}
+			} else {
+				v.addIncomingEdge(getElementName(sf.getSource()), expression);
+				p.addEdge(getElementName(sf.getSource()), getElementName(t), expression);
+			}
+		}
+		
+		for (SequenceFlow sf: sfoList) {
+			String expression = sf.getName()==null ? "": sf.getName();
+			if(flat) {
+				if(!containProcedure(sf.getTarget())) {
+					v.addOutgoingEdge(getElementName(sf.getTarget()), expression);
+				}
+			} else {
+				v.addOutgoingEdge(getElementName(sf.getTarget()), expression);
+			}
+			//p.addEdge(t.getName(), sf.getTarget().getName(), sf.getName());
+		}
+		
+		for(DataInputAssociation dia : diaList) {
+			String expression = "";
+			if (dia.getAttributeValueNs("http://magic", "expression") != null) {
+				expression = dia.getAttributeValueNs("http://magic", "expression");
+			}
+			for(ItemAwareElement elm : dia.getSources()) {
+				v.addIncomingEdge(getDataName(elm), expression);
+				p.addEdge(getDataName(elm), getElementName(t), expression);
+			}
+		}
+		for(DataOutputAssociation doa : doaList) {
+			String expression = "";
+			if (doa.getAttributeValueNs("http://magic", "expression") != null) {
+				expression = doa.getAttributeValueNs("http://magic", "expression");
+			}
+			v.addOutgoingEdge(getDataName(doa.getTarget()), expression);
+			p.addEdge(getElementName(t), getDataName(doa.getTarget()), expression);
+		}
+		p.addVertex(v);
+	}
+	
+	private static void parseSubProcess(SubProcess subp, Patterns p) {
+		Vertex v = new Vertex(getElementName(subp), TaskType.SUB_PROCESS);
+		Collection<SequenceFlow> sfiList = subp.getIncoming();
+		Collection<SequenceFlow> sfoList = subp.getOutgoing();
+		Collection<DataInputAssociation> diaList =  subp.getDataInputAssociations();
+		Collection<DataOutputAssociation> doaList =  subp.getDataOutputAssociations();
+		
+		for (SequenceFlow sf: sfiList) {
 			v.addIncomingEdge(getElementName(sf.getSource()), "");
-			p.addEdge(getElementName(sf.getSource()), t.getName().replace(" ", "_"), "");
+			p.addEdge(getElementName(sf.getSource()), getElementName(subp), "");
 		}
 		
 		for (SequenceFlow sf: sfoList) {
@@ -408,30 +627,45 @@ public class DemoBPMNParser {
 		
 		for(DataInputAssociation dia : diaList) {
 			String expression = "";
-			if (dia.getAttributeValue("expression") != null) {
-				expression = dia.getAttributeValue("expression");
+			if (dia.getAttributeValueNs("http://magic", "expression") != null) {
+				expression = dia.getAttributeValueNs("http://magic", "expression");
 			}
 			for(ItemAwareElement elm : dia.getSources()) {
-				v.addIncomingEdge(elm.getName(), expression);
-				p.addEdge(elm.getName(), t.getName().replace(" ", "_"), expression);
-				logInfo(" DIA: " + elm.getId());
+				v.addIncomingEdge(getDataName(elm), expression);
+				p.addEdge(getDataName(elm), getElementName(subp), expression);
 			}
 		}
 		for(DataOutputAssociation doa : doaList) {
 			String expression = "";
-			if (doa.getAttributeValue("expression") != null) {
-				expression = doa.getAttributeValue("expression");
+			if (doa.getAttributeValueNs("http://magic", "expression") != null) {
+				expression = doa.getAttributeValueNs("http://magic", "expression");
 			}
-			v.addOutgoingEdge(doa.getTarget().getName(), expression);
-			p.addEdge(t.getName().replace(" ", "_"), doa.getTarget().getName(), expression);
-			logInfo(" DOA: " + doa.getTarget().getId());
+			v.addOutgoingEdge(getDataName(doa.getTarget()), expression);
+			p.addEdge(getElementName(subp), getDataName(doa.getTarget()), expression);
 		}
 		p.addVertex(v);
 	}
 	
+	private static boolean containProcedure(FlowNode subp) {
+		if (subp.getChildElementsByType(Task.class).size() == 0
+				&& subp.getChildElementsByType(SubProcess.class).size() == 0) {
+			return false;
+		} else {
+			return true;
+		}
+	}
+	
+	private static String getDataName(ItemAwareElement elm) {
+		if (elm.getName() != null) {
+			return elm.getName().replace(" ", "_").replace("/", "Or");
+		} else {
+			return elm.getId();
+		}
+	}
+	
 	private static String getElementName(FlowElement fele) {
 		if(fele.getName() != null) {
-			return fele.getName().replace(" ", "_");
+			return fele.getName().replace(" ", "_").replace("/", "Or").replace(".", "").replace("-", "_");
 		} else {
 			return fele.getId();
 		}

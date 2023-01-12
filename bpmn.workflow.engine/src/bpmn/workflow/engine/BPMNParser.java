@@ -34,6 +34,10 @@ public class BPMNParser {
 		return modelInst.getModelElementsByType(SubProcess.class);
 	}
 	
+	public Collection<StartEvent> getStartEvents(BpmnModelInstance modelInst) {
+		return modelInst.getModelElementsByType(StartEvent.class);		
+	}
+	
 	public Collection<EndEvent> getEndEvents(BpmnModelInstance modelInst) {
 		return modelInst.getModelElementsByType(EndEvent.class);		
 	}

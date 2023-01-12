@@ -1,15 +1,14 @@
 package bpmn.workflow.engine;
 
-import lombok.extern.slf4j.Slf4j;
+import java.io.File;
+
 import org.camunda.bpm.model.bpmn.Bpmn;
 import org.camunda.bpm.model.bpmn.BpmnModelInstance;
-import org.camunda.bpm.model.bpmn.instance.FlowElement;
-import org.camunda.bpm.model.bpmn.instance.Gateway;
 import org.camunda.bpm.model.bpmn.instance.UserTask;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.io.File;
+import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
 public class ModelCreator {
