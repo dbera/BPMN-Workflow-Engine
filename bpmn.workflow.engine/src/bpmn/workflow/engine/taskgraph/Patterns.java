@@ -1,13 +1,17 @@
 package bpmn.workflow.engine.taskgraph;
 
+import java.io.File;
+import java.io.FileWriter;
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 
 public class Patterns {
 	public String name = "graph1";
 	private List<ProcessTask> tasks = new ArrayList<ProcessTask>();
-	private List<Edge> edges = new ArrayList<Edge>();
-	private List<Vertex> vertices = new ArrayList<Vertex>();
+	public List<Edge> edges = new ArrayList<Edge>();
+	public List<Vertex> vertices = new ArrayList<Vertex>();
+	public List<DataType> types = new ArrayList<DataType>();
 	
 	public void addTask(ProcessTask curr) 
 	{
@@ -48,6 +52,46 @@ public class Patterns {
 	public void addEdge(String _srcName, String _dstName, String _expression) {
 		Edge edge = new Edge(_srcName, _dstName, _expression);
 		edges.add(edge);
+	}
+	
+	public void addDataType(DataType r) {
+		types.add(r);
+	}
+	
+	public void toPPetriNet() {
+		
+	}
+	
+	public void generateSnakes() {
+		int idx = 0;
+		try {
+			FileWriter snakesWriter = new FileWriter("output\\petrinet.py");
+			snakesWriter.write("from snakes.nets import *\n");
+			snakesWriter.write("from pyrecord import Record\n");
+			snakesWriter.write("n = PetriNet('First net')\n"); 
+			for (Vertex v : vertices) {
+				if (v.type.equals(TaskType.START_EVENT)) {
+					snakesWriter.write("n.add_place(Place('"+ v.name + "', [0]))\n");
+				} else {
+					snakesWriter.write("n.add_place(Place('"+ v.name + "'))\n");
+				}
+			}
+			for(Edge edge: edges){
+				snakesWriter.write("n.add_transition(Transition('t"+idx+"', Expression('"+edge.expression +"')))\n");
+				idx++;
+			}
+			for(DataType dataType : types) {
+				snakesWriter.write(dataType.name + " = Record.create_type(\"" +dataType.name + "\"");
+				for (String key : dataType.parameters.keySet()) {
+					snakesWriter.write(", \""+key+"\"");
+				}
+				snakesWriter.write(")\n");
+			}
+			snakesWriter.close();
+		} catch (IOException e) {
+			System.out.println("An error occurred.");
+			e.printStackTrace();
+		}
 	}
 	
 	public String generateDot() {

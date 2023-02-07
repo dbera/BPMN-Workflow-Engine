@@ -18,6 +18,9 @@ public class Vertex {
 		type = _type;
 	}
 	
+	public TaskType getType() {
+		return type;
+	}
 	public void setType(TaskType _type) {
 		type = _type;
 	}
@@ -30,5 +33,13 @@ public class Vertex {
 	public void addOutgoingEdge(String dst, String expression) {
 		Edge e = new Edge(name, dst, expression);
 		outgoings.add(e);
+	}
+	
+	public Set<Edge> getOutgoingEdge(){
+		return outgoings;
+	}
+	
+	public String getName() {
+		return name;
 	}
 }

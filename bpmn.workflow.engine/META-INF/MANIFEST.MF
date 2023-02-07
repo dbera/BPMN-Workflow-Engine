@@ -9,3 +9,4 @@ Require-Bundle: org.camunda.bpm.model.bpmn;bundle-version="1.0.0",
  wrapped.org.projectlombok.lombok;bundle-version="1.18.22"
 Automatic-Module-Name: bpmn.workflow.engine
 Bundle-RequiredExecutionEnvironment: JavaSE-14
+Export-Package: bpmn.workflow.engine.taskgraph

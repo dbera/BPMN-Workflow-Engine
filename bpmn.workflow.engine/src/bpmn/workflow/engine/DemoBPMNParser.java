@@ -7,6 +7,7 @@ import java.util.List;
 
 import org.camunda.bpm.model.bpmn.Bpmn;
 import org.camunda.bpm.model.bpmn.BpmnModelInstance;
+import org.camunda.bpm.model.bpmn.Query;
 import org.camunda.bpm.model.bpmn.instance.Activity;
 import org.camunda.bpm.model.bpmn.instance.BoundaryEvent;
 import org.camunda.bpm.model.bpmn.instance.DataInputAssociation;
@@ -16,6 +17,7 @@ import org.camunda.bpm.model.bpmn.instance.DataStoreReference;
 import org.camunda.bpm.model.bpmn.instance.EndEvent;
 import org.camunda.bpm.model.bpmn.instance.Event;
 import org.camunda.bpm.model.bpmn.instance.ExclusiveGateway;
+import org.camunda.bpm.model.bpmn.instance.ExtensionElements;
 import org.camunda.bpm.model.bpmn.instance.FlowElement;
 import org.camunda.bpm.model.bpmn.instance.FlowNode;
 import org.camunda.bpm.model.bpmn.instance.Gateway;
@@ -28,8 +30,19 @@ import org.camunda.bpm.model.bpmn.instance.ServiceTask;
 import org.camunda.bpm.model.bpmn.instance.StartEvent;
 import org.camunda.bpm.model.bpmn.instance.SubProcess;
 import org.camunda.bpm.model.bpmn.instance.Task;
-import org.camunda.bpm.model.xml.instance.DomElement;
+import org.camunda.bpm.model.bpmn.instance.camunda.CamundaProperties;
+import org.camunda.bpm.model.bpmn.instance.camunda.CamundaProperty;
+import org.camunda.bpm.model.xml.instance.ModelElementInstance;
 
+import bpmn.workflow.engine.modelExtension.Extension;
+import bpmn.workflow.engine.modelExtension.ExtensionImpl;
+import bpmn.workflow.engine.modelExtension.Extensions;
+import bpmn.workflow.engine.modelExtension.ExtensionsImpl;
+import bpmn.workflow.engine.modelExtension.Type;
+import bpmn.workflow.engine.modelExtension.TypeImpl;
+import bpmn.workflow.engine.modelExtension.Types;
+import bpmn.workflow.engine.modelExtension.TypesImpl;
+import bpmn.workflow.engine.taskgraph.DataType;
 import bpmn.workflow.engine.taskgraph.Patterns;
 import bpmn.workflow.engine.taskgraph.TaskType;
 import bpmn.workflow.engine.taskgraph.Vertex;
@@ -45,15 +58,16 @@ public class DemoBPMNParser {
 		BPMNElementsParser parser = new BPMNElementsParser();
         BpmnModelInstance modelInst;
         try {
-        	URL resource = DemoBPMNParser.class.getClassLoader().getResource("diagram_2.bpmn");
+        	URL resource = DemoBPMNParser.class.getClassLoader().getResource("diagram_subP3.bpmn");
         	File file = new File(resource.toURI());
         	modelInst = Bpmn.readModelFromFile(file);
         	logInfo(modelInst.getModel().getModelName());
-        	
+        	doRegister();
         	parseBPMN(modelInst);
         	for(Patterns p : patternList) {
-        		String dot = p.generateDot();
-            	logInfo(dot);
+        		p.generateSnakes();
+        		//String dot = p.generateDot();
+            	//logInfo(dot);
         	}
         	/*StartEvent se = parser.getStartElement(modelInst);
        		if(se != null) logInfo("StartEvent: " + se.getName());
@@ -79,6 +93,13 @@ public class DemoBPMNParser {
        			ig.getSucceedingNodes().list().forEach(elm -> logInfo(" Successor: " + elm.getName()));
        		}*/
         } catch (Exception e) { e.printStackTrace(); }
+	}
+	
+	private static void doRegister() {
+		TypesImpl.registerType(Bpmn.INSTANCE.getBpmnModelBuilder());
+		TypeImpl.registerType(Bpmn.INSTANCE.getBpmnModelBuilder());
+		ExtensionsImpl.registerType(Bpmn.INSTANCE.getBpmnModelBuilder());
+		ExtensionImpl.registerType(Bpmn.INSTANCE.getBpmnModelBuilder());
 	}
 	
 	public static void parseBPMN(BpmnModelInstance modelInst) {
@@ -344,15 +365,31 @@ public class DemoBPMNParser {
 	}
 
 	private static void parseDataStoreRef(DataStoreReference dsRef, Patterns p) {
-		String name = "dataStore";
-		if(dsRef.getName() != null) {
-			name = getElementName(dsRef);
-		} else {
-			name = dsRef.getId();
+		Collection<Types> types = dsRef.getExtensionElements().getChildElementsByType(Types.class);
+		for(Types typeDef : types) {
+			Collection<Type> t = typeDef.getChildElementsByType(Type.class);
+			for (Type type : t) {
+				if (type.getType().equals("Record")) {
+					Extensions exts = type.getExtensions();
+					Collection<Extension> extCollection = exts.getExtension();
+					DataType dataType = new DataType(type.getName());
+					for(Extension extension : extCollection) {
+						dataType.addParameter(extension.getKey(), extension.getType());
+					}
+					p.addDataType(dataType);
+				}
+			}
 		}
-		Vertex v = new Vertex(name);
-		v.setType(TaskType.DATA_STORE);
-		p.addVertex(v);
+		
+//		String name = "dataStore";
+//		if(dsRef.getName() != null) {
+//			name = getElementName(dsRef);
+//		} else {
+//			name = dsRef.getId();
+//		}
+		//Vertex v = new Vertex(name);
+		//v.setType(TaskType.DATA_STORE);
+		//p.addVertex(v);
 	}
 	
 	private static void parseDataObjectRef(DataObjectReference doRef, Patterns p) {
