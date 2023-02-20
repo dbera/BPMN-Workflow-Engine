@@ -1,4 +1,4 @@
-package bpmn.workflow.engine.taskgraph;
+package bpmn.workflow.taskgraph;
 
 public enum TaskType {
 	TASK,

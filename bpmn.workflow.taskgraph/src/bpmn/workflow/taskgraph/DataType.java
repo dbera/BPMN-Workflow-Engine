@@ -1,4 +1,4 @@
-package bpmn.workflow.engine.taskgraph;
+package bpmn.workflow.taskgraph;
 
 import java.util.LinkedHashMap;
 import java.util.Map;

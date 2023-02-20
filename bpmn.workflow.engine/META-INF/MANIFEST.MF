@@ -6,7 +6,8 @@ Bundle-Version: 1.0.0.qualifier
 Require-Bundle: org.camunda.bpm.model.bpmn;bundle-version="1.0.0",
  org.camunda.bpm.model.xml;bundle-version="1.0.0",
  slf4j.api;bundle-version="2.0.3",
- wrapped.org.projectlombok.lombok;bundle-version="1.18.22"
+ wrapped.org.projectlombok.lombok;bundle-version="1.18.22",
+ bpmn.workflow.petrinet;bundle-version="1.0.0",
+ bpmn.workflow.taskgraph;bundle-version="1.0.0"
 Automatic-Module-Name: bpmn.workflow.engine
 Bundle-RequiredExecutionEnvironment: JavaSE-14
-Export-Package: bpmn.workflow.engine.taskgraph

@@ -7,7 +7,6 @@ import java.util.List;
 
 import org.camunda.bpm.model.bpmn.Bpmn;
 import org.camunda.bpm.model.bpmn.BpmnModelInstance;
-import org.camunda.bpm.model.bpmn.Query;
 import org.camunda.bpm.model.bpmn.instance.Activity;
 import org.camunda.bpm.model.bpmn.instance.BoundaryEvent;
 import org.camunda.bpm.model.bpmn.instance.DataInputAssociation;
@@ -17,7 +16,6 @@ import org.camunda.bpm.model.bpmn.instance.DataStoreReference;
 import org.camunda.bpm.model.bpmn.instance.EndEvent;
 import org.camunda.bpm.model.bpmn.instance.Event;
 import org.camunda.bpm.model.bpmn.instance.ExclusiveGateway;
-import org.camunda.bpm.model.bpmn.instance.ExtensionElements;
 import org.camunda.bpm.model.bpmn.instance.FlowElement;
 import org.camunda.bpm.model.bpmn.instance.FlowNode;
 import org.camunda.bpm.model.bpmn.instance.Gateway;
@@ -30,9 +28,6 @@ import org.camunda.bpm.model.bpmn.instance.ServiceTask;
 import org.camunda.bpm.model.bpmn.instance.StartEvent;
 import org.camunda.bpm.model.bpmn.instance.SubProcess;
 import org.camunda.bpm.model.bpmn.instance.Task;
-import org.camunda.bpm.model.bpmn.instance.camunda.CamundaProperties;
-import org.camunda.bpm.model.bpmn.instance.camunda.CamundaProperty;
-import org.camunda.bpm.model.xml.instance.ModelElementInstance;
 
 import bpmn.workflow.engine.modelExtension.Extension;
 import bpmn.workflow.engine.modelExtension.ExtensionImpl;
@@ -42,10 +37,12 @@ import bpmn.workflow.engine.modelExtension.Type;
 import bpmn.workflow.engine.modelExtension.TypeImpl;
 import bpmn.workflow.engine.modelExtension.Types;
 import bpmn.workflow.engine.modelExtension.TypesImpl;
-import bpmn.workflow.engine.taskgraph.DataType;
-import bpmn.workflow.engine.taskgraph.Patterns;
-import bpmn.workflow.engine.taskgraph.TaskType;
-import bpmn.workflow.engine.taskgraph.Vertex;
+import bpmn.workflow.petrinet.PPetriNet;
+import bpmn.workflow.taskgraph.DataType;
+import bpmn.workflow.taskgraph.Patterns;
+import bpmn.workflow.taskgraph.TaskType;
+import bpmn.workflow.taskgraph.Vertex;
+
 public class DemoBPMNParser {
 	
 	static List<Patterns> patternList = new ArrayList<Patterns>();
@@ -65,7 +62,11 @@ public class DemoBPMNParser {
         	doRegister();
         	parseBPMN(modelInst);
         	for(Patterns p : patternList) {
-        		p.generateSnakes();
+        		PPetriNet pn = new PPetriNet(p);
+        		//pn.build();
+        		
+        		pn.build().outputScript();
+        		//pn.printAll();
         		//String dot = p.generateDot();
             	//logInfo(dot);
         	}
@@ -413,9 +414,17 @@ public class DemoBPMNParser {
 		}
 		Vertex v = new Vertex(name);
 		if (gw instanceof ExclusiveGateway) {
-			v.setType(TaskType.EXOR_JOIN_GATE);
+			if (gw.getIncoming().size() > 1) {
+				v.setType(TaskType.EXOR_JOIN_GATE);
+			} else {
+				v.setType(TaskType.EXOR_SPLIT_GATE);
+			}
 		} else if (gw instanceof ParallelGateway) {
-			v.setType(TaskType.PAR_JOIN_GATE);
+			if (gw.getIncoming().size() > 1) {
+				v.setType(TaskType.PAR_JOIN_GATE);
+			} else {
+				v.setType(TaskType.PAR_SPLIT_GATE);
+			}
 		}
 		
 		Collection<SequenceFlow> sfiList = gw.getIncoming();

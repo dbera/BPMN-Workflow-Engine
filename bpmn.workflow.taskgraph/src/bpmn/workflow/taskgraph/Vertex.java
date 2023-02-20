@@ -1,4 +1,4 @@
-package bpmn.workflow.engine.taskgraph;
+package bpmn.workflow.taskgraph;
 
 import java.util.HashSet;
 import java.util.Set;
@@ -33,6 +33,10 @@ public class Vertex {
 	public void addOutgoingEdge(String dst, String expression) {
 		Edge e = new Edge(name, dst, expression);
 		outgoings.add(e);
+	}
+	
+	public Set<Edge> getIncomingEdge(){
+		return outgoings;
 	}
 	
 	public Set<Edge> getOutgoingEdge(){

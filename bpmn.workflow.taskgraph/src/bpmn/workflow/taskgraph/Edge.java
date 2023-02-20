@@ -1,4 +1,4 @@
-package bpmn.workflow.engine.taskgraph;
+package bpmn.workflow.taskgraph;
 
 public class Edge {
 	String srcName = new String();
@@ -11,4 +11,15 @@ public class Edge {
 		expression = _expression;
 	}
 	
+	public String getExpression() {
+		return expression;
+	}
+	
+	public String getSrcName() {
+		return srcName;
+	}
+	
+	public String getDstName() {
+		return dstName;
+	}
 }

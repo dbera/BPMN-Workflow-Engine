@@ -1,0 +1,7 @@
+Manifest-Version: 1.0
+Bundle-ManifestVersion: 2
+Bundle-Name: Taskgraph
+Bundle-SymbolicName: bpmn.workflow.taskgraph
+Bundle-Version: 1.0.0.qualifier
+Bundle-RequiredExecutionEnvironment: JavaSE-17
+Export-Package: bpmn.workflow.taskgraph

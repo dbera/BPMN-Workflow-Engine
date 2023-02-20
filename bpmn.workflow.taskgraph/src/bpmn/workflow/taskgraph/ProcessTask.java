@@ -1,4 +1,4 @@
-package bpmn.workflow.engine.taskgraph;
+package bpmn.workflow.taskgraph;
 
 import java.util.HashSet;
 import java.util.List;

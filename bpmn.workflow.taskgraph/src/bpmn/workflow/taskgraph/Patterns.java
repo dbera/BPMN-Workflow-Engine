@@ -1,4 +1,4 @@
-package bpmn.workflow.engine.taskgraph;
+package bpmn.workflow.taskgraph;
 
 import java.io.File;
 import java.io.FileWriter;
@@ -58,40 +58,13 @@ public class Patterns {
 		types.add(r);
 	}
 	
-	public void toPPetriNet() {
-		
-	}
-	
-	public void generateSnakes() {
-		int idx = 0;
-		try {
-			FileWriter snakesWriter = new FileWriter("output\\petrinet.py");
-			snakesWriter.write("from snakes.nets import *\n");
-			snakesWriter.write("from pyrecord import Record\n");
-			snakesWriter.write("n = PetriNet('First net')\n"); 
-			for (Vertex v : vertices) {
-				if (v.type.equals(TaskType.START_EVENT)) {
-					snakesWriter.write("n.add_place(Place('"+ v.name + "', [0]))\n");
-				} else {
-					snakesWriter.write("n.add_place(Place('"+ v.name + "'))\n");
-				}
+	public Vertex getVertex(String name) {
+		for (Vertex v : vertices) {
+			if (v.name.equals(name)) {
+				return v;
 			}
-			for(Edge edge: edges){
-				snakesWriter.write("n.add_transition(Transition('t"+idx+"', Expression('"+edge.expression +"')))\n");
-				idx++;
-			}
-			for(DataType dataType : types) {
-				snakesWriter.write(dataType.name + " = Record.create_type(\"" +dataType.name + "\"");
-				for (String key : dataType.parameters.keySet()) {
-					snakesWriter.write(", \""+key+"\"");
-				}
-				snakesWriter.write(")\n");
-			}
-			snakesWriter.close();
-		} catch (IOException e) {
-			System.out.println("An error occurred.");
-			e.printStackTrace();
 		}
+		return null;
 	}
 	
 	public String generateDot() {

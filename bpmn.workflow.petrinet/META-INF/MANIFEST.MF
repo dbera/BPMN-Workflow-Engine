@@ -1,0 +1,10 @@
+Manifest-Version: 1.0
+Bundle-ManifestVersion: 2
+Bundle-Name: Petrinet
+Bundle-SymbolicName: bpmn.workflow.petrinet
+Bundle-Version: 1.0.0.qualifier
+Bundle-RequiredExecutionEnvironment: JavaSE-17
+Automatic-Module-Name: bpmn.workflow.petrinet
+Export-Package: bpmn.workflow.petrinet
+Require-Bundle: com.google.gson,
+ bpmn.workflow.taskgraph;bundle-version="1.0.0"
