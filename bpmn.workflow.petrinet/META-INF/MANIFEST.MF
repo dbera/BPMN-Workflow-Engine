@@ -3,7 +3,7 @@ Bundle-ManifestVersion: 2
 Bundle-Name: Petrinet
 Bundle-SymbolicName: bpmn.workflow.petrinet
 Bundle-Version: 1.0.0.qualifier
-Bundle-RequiredExecutionEnvironment: JavaSE-17
+Bundle-RequiredExecutionEnvironment: JavaSE-14
 Automatic-Module-Name: bpmn.workflow.petrinet
 Export-Package: bpmn.workflow.petrinet
 Require-Bundle: com.google.gson,
