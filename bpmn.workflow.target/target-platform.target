@@ -4,7 +4,7 @@
 	<locations>
 		<location includeAllPlatforms="false" includeConfigurePhase="true" includeMode="planner" includeSource="true" type="InstallableUnit">
 			<repository location="https://projectlombok.org/p2"/>
-			<unit id="org.projectlombok.feature.feature.group" version="1.18.24"/>
+			<unit id="org.projectlombok.feature.feature.group" version="1.18.30"/>
 		</location>
 		<location includeDependencyDepth="none" includeDependencyScopes="compile" includeSource="true" missingManifest="generate" type="Maven">
 			<dependencies>
@@ -51,7 +51,7 @@
 				<dependency>
 					<groupId>org.projectlombok</groupId>
 					<artifactId>lombok</artifactId>
-					<version>1.18.22</version>
+					<version>1.18.26</version>
 					<type>jar</type>
 				</dependency>
 			</dependencies>

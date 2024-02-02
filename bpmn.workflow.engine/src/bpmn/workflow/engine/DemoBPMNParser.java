@@ -10,6 +10,7 @@ import org.camunda.bpm.model.bpmn.BpmnModelInstance;
 import org.camunda.bpm.model.bpmn.Query;
 import org.camunda.bpm.model.bpmn.instance.Activity;
 import org.camunda.bpm.model.bpmn.instance.BoundaryEvent;
+import org.camunda.bpm.model.bpmn.instance.BpmnModelElementInstance;
 import org.camunda.bpm.model.bpmn.instance.DataInputAssociation;
 import org.camunda.bpm.model.bpmn.instance.DataObjectReference;
 import org.camunda.bpm.model.bpmn.instance.DataOutputAssociation;
@@ -42,6 +43,7 @@ import bpmn.workflow.engine.modelExtension.Type;
 import bpmn.workflow.engine.modelExtension.TypeImpl;
 import bpmn.workflow.engine.modelExtension.Types;
 import bpmn.workflow.engine.modelExtension.TypesImpl;
+import bpmn.workflow.engine.taskgraph.Component;
 import bpmn.workflow.engine.taskgraph.DataType;
 import bpmn.workflow.engine.taskgraph.Patterns;
 import bpmn.workflow.engine.taskgraph.TaskType;
@@ -55,19 +57,23 @@ public class DemoBPMNParser {
 
 	public static void main(String[] args) {
 		
-		BPMNElementsParser parser = new BPMNElementsParser();
+//		BPMNElementsParser parser = new BPMNElementsParser();
         BpmnModelInstance modelInst;
         try {
-        	URL resource = DemoBPMNParser.class.getClassLoader().getResource("diagram_subP3.bpmn");
+        	URL resource = DemoBPMNParser.class.getClassLoader().getResource("BPMN4S_model.bpmn");
         	File file = new File(resource.toURI());
         	modelInst = Bpmn.readModelFromFile(file);
         	logInfo(modelInst.getModel().getModelName());
         	doRegister();
         	parseBPMN(modelInst);
         	for(Patterns p : patternList) {
-        		p.generateSnakes();
-        		//String dot = p.generateDot();
-            	//logInfo(dot);
+//        		p.generateSnakes();
+//        		String dot = p.generateDot();
+        		String fab = p.generateFabSpec();
+        		String types = p.generateFabSpecTypes();
+        		logInfo(fab);
+//        		logInfo(dot);
+        		logInfo(types);
         	}
         	/*StartEvent se = parser.getStartElement(modelInst);
        		if(se != null) logInfo("StartEvent: " + se.getName());
@@ -362,6 +368,10 @@ public class DemoBPMNParser {
 			}
 			//p.addEdge(t.getName(), sf.getTarget().getName(), sf.getName());
 		}
+		
+		if (isTopLevel(subp)) {
+			p.components.add(new Component(subp.getName()));
+		}
 	}
 
 	private static void parseDataStoreRef(DataStoreReference dsRef, Patterns p) {
@@ -401,7 +411,13 @@ public class DemoBPMNParser {
 		}
 		Vertex v = new Vertex(name);
 		v.setType(TaskType.DATA_OBJECT);
+		v.setDataType(doRef.getAttributeValueNs("http://magic", "objectType"));
+		v.setPname(getTopLevelParentName(doRef));
 		p.addVertex(v);
+	}
+	
+	private static Boolean isSplit(Gateway gw) {
+		return gw.getIncoming().size() == 1;
 	}
 	
 	private static void parseGateway(Gateway gw, Patterns p) {
@@ -413,11 +429,18 @@ public class DemoBPMNParser {
 		}
 		Vertex v = new Vertex(name);
 		if (gw instanceof ExclusiveGateway) {
-			v.setType(TaskType.EXOR_JOIN_GATE);
+			if (isSplit(gw)) {
+				v.setType(TaskType.EXOR_SPLIT_GATE);
+			} else {
+				v.setType(TaskType.EXOR_JOIN_GATE);
+			}
 		} else if (gw instanceof ParallelGateway) {
-			v.setType(TaskType.PAR_JOIN_GATE);
-		}
-		
+			if (isSplit(gw)) {
+				v.setType(TaskType.PAR_SPLIT_GATE);
+			} else {
+				v.setType(TaskType.PAR_JOIN_GATE);
+			}
+		}		
 		Collection<SequenceFlow> sfiList = gw.getIncoming();
 		Collection<SequenceFlow> sfoList = gw.getOutgoing();
 		
@@ -444,6 +467,7 @@ public class DemoBPMNParser {
 				v.addOutgoingEdge(getElementName(sf.getTarget()), expression);
 			}
 		}
+		v.setPname(getTopLevelParentName(gw));
 		p.addVertex(v);
 	}
 	
@@ -537,6 +561,8 @@ public class DemoBPMNParser {
 				v.addOutgoingEdge(getElementName(sf.getTarget()), expression);
 			}
 		}
+		v.setDataType(evt.getAttributeValueNs("http://magic", "objectType"));
+		v.setPname(getTopLevelParentName(evt));
 		p.addVertex(v);
 	}
 	
@@ -598,7 +624,7 @@ public class DemoBPMNParser {
 		Collection<SequenceFlow> sfoList = t.getOutgoing();
 		Collection<DataInputAssociation> diaList =  t.getDataInputAssociations();
 		Collection<DataOutputAssociation> doaList =  t.getDataOutputAssociations();
-		
+				
 		for (SequenceFlow sf: sfiList) {
 			String expression = sf.getName()==null ? "": sf.getName();
 			if(flat) {
@@ -642,7 +668,24 @@ public class DemoBPMNParser {
 			v.addOutgoingEdge(getDataName(doa.getTarget()), expression);
 			p.addEdge(getElementName(t), getDataName(doa.getTarget()), expression);
 		}
+		
+		v.setPname(getTopLevelParentName(t));
 		p.addVertex(v);
+	}
+	
+	private static String getTopLevelParentName (BpmnModelElementInstance elemInst) {
+		ModelElementInstance parent = elemInst.getParentElement();
+		while (parent.getElementType().getTypeName() != "process") {
+			if (isTopLevel(parent)) {
+				return parent.getAttributeValue("name");
+			}
+			parent = parent.getParentElement();
+		}
+		return null;
+	}
+	
+	private static Boolean isTopLevel (ModelElementInstance elemInst) {
+		return elemInst.getParentElement().getElementType().getTypeName() == "process";
 	}
 	
 	private static void parseSubProcess(SubProcess subp, Patterns p) {
@@ -680,6 +723,11 @@ public class DemoBPMNParser {
 			v.addOutgoingEdge(getDataName(doa.getTarget()), expression);
 			p.addEdge(getElementName(subp), getDataName(doa.getTarget()), expression);
 		}
+		
+		if (isTopLevel(subp)) {
+			p.components.add(new Component(subp.getName()));
+		}
+		
 		p.addVertex(v);
 	}
 	
