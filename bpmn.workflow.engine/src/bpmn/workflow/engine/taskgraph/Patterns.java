@@ -67,42 +67,6 @@ public class Patterns {
 	
 
 	
-	public void toPPetriNet() {
-		
-	}
-	
-	public void generateSnakes() {
-		int idx = 0;
-		try {
-			FileWriter snakesWriter = new FileWriter("output\\petrinet.py");
-			snakesWriter.write("from snakes.nets import *\n");
-			snakesWriter.write("from pyrecord import Record\n");
-			snakesWriter.write("n = PetriNet('First net')\n"); 
-			for (Vertex v : vertices.values()) {
-				if (v.type.equals(TaskType.START_EVENT)) {
-					snakesWriter.write("n.add_place(Place('"+ v.name + "', [0]))\n");
-				} else {
-					snakesWriter.write("n.add_place(Place('"+ v.name + "'))\n");
-				}
-			}
-			for(Edge edge: edges){
-				snakesWriter.write("n.add_transition(Transition('t"+idx+"', Expression('"+edge.expression +"')))\n");
-				idx++;
-			}
-			for(DataType dataType : types) {
-				snakesWriter.write(dataType.name + " = Record.create_type(\"" +dataType.name + "\"");
-				for (String key : dataType.parameters.keySet()) {
-					snakesWriter.write(", \""+key+"\"");
-				}
-				snakesWriter.write(")\n");
-			}
-			snakesWriter.close();
-		} catch (IOException e) {
-			System.out.println("An error occurred.");
-			e.printStackTrace();
-		}
-	}
-	
 	public String generateDot() {
 		StringBuilder b = new StringBuilder("digraph "+ name + " {\n");
 		b.append("  rankdir = LR; nodesep=.25; sep=1;\n");
@@ -144,12 +108,12 @@ public class Patterns {
 	public String generateFabSpec() {
 		String TYPES_FILE_NAME = "data.types";
 		StringBuilder strb = new StringBuilder(String.format("import %s;\n", TYPES_FILE_NAME));
-		strb.append("Product-Spec " +  name + "\n{\n");
+		strb.append("specification " +  name + "\n{\n");
 		for (Component c: components) {
 			String cname = normalizeName(c.name);
-			String component = cname + "\n{\n";
-			String inOut = fabSpecInputOutput(c.name);
-			String local = fabSpecLocal(c.name);
+			String component = "system " + cname + "\n{\n";
+			String inOut = fabSpecInputOutput(c);
+			String local = fabSpecLocal(c);
 			String init = fabSpecInit(c.name);
 			String desc = fabSpecDesc(c.name); 
 			component += indent(inOut);
@@ -165,39 +129,43 @@ public class Patterns {
 		strb.append("}\n");
 		return strb.toString();
 	}
-
-	private String fabSpecInputOutput(String compName) {
+	
+	private String fabSpecInputOutput(Component c) {
 		String inStr = "inputs\n";
 		String outStr = "outputs\n";
-		for (Vertex v: vertices.values()) {
-			if(v.getType() == TaskType.TASK && v.pname == compName) {
-				for (Edge e: edges) {
-					if (isDataVertex(e.dstName) && e.srcName == v.name) {
-						Vertex d = vertices.get(e.dstName);
-						String name = d.name != null ? d.name.split(":")[0] : "null";
-						String type = d.dataType != null ? d.dataType.split(":")[0] : "null";
-						outStr += type + "\t" + name + "\n";
-					}
-					if (isDataVertex(e.srcName) && e.dstName == v.name) {
-						Vertex d = vertices.get(e.srcName);
-						String name = d.name != null ? d.name.split(":")[0] : "null";
-						String type = d.dataType != null ? d.dataType.split(":")[0] : "null";
-						inStr += type + "\t" + name + "\n";
-					}
-				}
-			}
+		
+		for (String src: c.incomings.keySet()) {
+			String name = cleanName(src);
+			String type = src.split(":")[1];
+			inStr += type + "\t" + name + "\n";
 		}
+		
+		for (String dst: c.outgoings.keySet()) {
+			String name = cleanName(dst);
+			String type = dst.split(":")[1];
+			outStr += type + "\t" + name + "\n";
+		}
+
 		return inStr + "\n" + outStr;
 	}
 	
-	private String fabSpecLocal(String _compName) {
-		String compName = normalizeName(_compName);
+	private String fabSpecLocal(Component c) {
 		String locals = "local\n";
+		//
+		// All data vertices are places (if they are not inputs or outputs)
+		//
+		for (Vertex v: vertices.values()) {
+			if( isDataVertex(v.getName()) && v.pname == c.name 
+					&& !c.getIncomingEdges().keySet().contains(v.getName()) 
+					&& !c.getOutgoingEdges().keySet().contains(v.getName())) {
+				locals += tabulate(cleanName(v.getDataType()), cleanName(v.getName())) + "\n";
+			}
+		}
 		//
 		// XOR gates introduce a place
 		//
 		for (Vertex v: vertices.values()) {
-			if (v.pname == _compName) {
+			if (v.pname == c.name) {
 				TaskType vtype = v.getType();
 				if ( vtype == TaskType.EXOR_JOIN_GATE || vtype == TaskType.EXOR_SPLIT_GATE) {
 					locals += tabulate("SOME_TYPE_TODO", capAtColon(v.getName())) + "\n";
@@ -211,10 +179,12 @@ public class Patterns {
 			Vertex src = vertices.get(e.srcName);
 			Vertex dst = vertices.get(e.dstName);
 			if (src == null || dst == null) {
-				logInfo(String.format("ERROR: Cant find vertex %s or %s.", e.srcName, e.dstName));
+				logInfo(String.format("WARNING: Cant find vertex %s or %s.", e.srcName, e.dstName));
 			}else {
-				if (!isExclusiveGate(src) && !isDataVertex(e.srcName)
+				if (src.pname == c.name 
+						&& !isExclusiveGate(src) && !isDataVertex(e.srcName)
 						&& !isExclusiveGate(dst) && !isDataVertex(e.dstName)){
+					assert dst.pname == c.name;
 					locals += tabulate("SOME_TYPE_TODO", capAtColon(e.srcName)+"2"+capAtColon(e.dstName)) + "\n";
 				}
 			}
@@ -222,8 +192,55 @@ public class Patterns {
 		return locals;
 	}
 	
+
+	private String fabSpecInit(String _cname) {
+		return "init \\\\TODO\n";
+	}
+
+	private String fabSpecDesc(String _compName) {
+		ArrayList<String> desc = new ArrayList<String>();
+		for (Vertex v: vertices.values()) {
+			if(v.getType() == TaskType.TASK && v.pname == _compName) {
+				String task = "";
+				List<String> inputs = new ArrayList<String>();
+				for(Edge e: v.getIncomingEdges()) {
+					inputs.add(cleanName(e.srcName));
+				}
+				task += "action\t\t" + normalizeName(v.getName()) + "\n";
+				task += "case\t\t" + "default\n";
+				task += "with-inputs\t" + String.join(", ", inputs) + "\n";
+				for(Edge e: v.getOutgoingEdges()) {
+					task += "produces-output\t" + cleanName(e.dstName) + "\n";
+					task += e.expression != ""? "updates\n" + indent(e.expression) + "\n" : "";
+				}
+				desc.add(task);
+			}
+		}
+		return "desc \"" + normalizeName(_compName) + "_Model\"\n\n" + String.join("\n", desc);
+	}
+	
+	private String indent(String str) {
+		return str.replaceAll("(?m)^", "    ");
+	}
+	
+	private static String normalizeName(String name) {
+		return name.replace(" ", "_");
+	}
+	
+	private String cleanName(String name) {
+		return name == null ? "" : capAtColon(normalizeName(name));
+	}
+
+	public Boolean isDataVertex (String name) {
+		Vertex v = vertices.get(name);
+		if (v != null) {
+			return v.type == TaskType.DATA_OBJECT || v.type == TaskType.CATCH_EVENT;
+		}
+		return false;
+	}
+
 	private Boolean isExclusiveGate(Vertex v) {
-		return v.getType() != TaskType.EXOR_JOIN_GATE && v.getType() != TaskType.EXOR_SPLIT_GATE;
+		return v.getType() == TaskType.EXOR_JOIN_GATE || v.getType() == TaskType.EXOR_SPLIT_GATE;
 	}
 	
 	private String tabulate (String... strings) {
@@ -234,47 +251,45 @@ public class Patterns {
 		return string == null ? "" : string.split(":")[0];
 	}
 	
-	private String fabSpecInit(String _cname) {
-		return "init \\\\TODO\n";
-	}
-
-	private String fabSpecDesc(String _compName) {
-		String desc = "desc \"" + normalizeName(_compName) + "_Model\"\n\n";
-		for (Vertex v: vertices.values()) {
-			if(v.getType() == TaskType.TASK && v.pname == _compName) {
-				List<String> inputs = new ArrayList<String>();
-				List<String> outputs = new ArrayList<String>();
-				for(Edge e: v.getIncomingEdges()) {
-					inputs.add(e.srcName);
-				}
-				for(Edge e: v.getOutgoingEdges()) {
-					outputs.add(e.dstName);
-				}	
-				desc += "action\t\t\t" + normalizeName(v.getName()) + "\n";
-				desc += "case\t\t\t" + "default\n";
-				desc += "with-inputs\t\t" + String.join(", ", inputs) + "\n";
-				desc += "produces-outputs\t" + String.join(", ", outputs) + "\n";
-			}
-		}
-		return desc;
-	}
-	
-	private String indent(String str) {
-		return str.replaceAll("(?m)^", "    ");
-	}
-	
-	private static String normalizeName(String name) {
-		return name.replace(" ", "_");
-	}
-
-	public Boolean isDataVertex (String name) {
-		Vertex v = vertices.get(name);
-		if (v != null) {
-			return v.type == TaskType.DATA_OBJECT || v.type == TaskType.CATCH_EVENT;
-		}
-		return false;
-	}
-	
 	public static void logInfo(String str) { System.out.println(str); }		
 	
+
+	// Old code from Luna:
+	
+	public void toPPetriNet() {
+		
+	}
+	
+	public void generateSnakes() {
+		int idx = 0;
+		try {
+			FileWriter snakesWriter = new FileWriter("output\\petrinet.py");
+			snakesWriter.write("from snakes.nets import *\n");
+			snakesWriter.write("from pyrecord import Record\n");
+			snakesWriter.write("n = PetriNet('First net')\n"); 
+			for (Vertex v : vertices.values()) {
+				if (v.type.equals(TaskType.START_EVENT)) {
+					snakesWriter.write("n.add_place(Place('"+ v.name + "', [0]))\n");
+				} else {
+					snakesWriter.write("n.add_place(Place('"+ v.name + "'))\n");
+				}
+			}
+			for(Edge edge: edges){
+				snakesWriter.write("n.add_transition(Transition('t"+idx+"', Expression('"+edge.expression +"')))\n");
+				idx++;
+			}
+			for(DataType dataType : types) {
+				snakesWriter.write(dataType.name + " = Record.create_type(\"" +dataType.name + "\"");
+				for (String key : dataType.parameters.keySet()) {
+					snakesWriter.write(", \""+key+"\"");
+				}
+				snakesWriter.write(")\n");
+			}
+			snakesWriter.close();
+		} catch (IOException e) {
+			System.out.println("An error occurred.");
+			e.printStackTrace();
+		}
+	}
+
 }

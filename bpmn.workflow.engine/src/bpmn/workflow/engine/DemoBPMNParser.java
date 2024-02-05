@@ -25,6 +25,7 @@ import org.camunda.bpm.model.bpmn.instance.Gateway;
 import org.camunda.bpm.model.bpmn.instance.IntermediateCatchEvent;
 import org.camunda.bpm.model.bpmn.instance.IntermediateThrowEvent;
 import org.camunda.bpm.model.bpmn.instance.ItemAwareElement;
+import org.camunda.bpm.model.bpmn.instance.Message;
 import org.camunda.bpm.model.bpmn.instance.ParallelGateway;
 import org.camunda.bpm.model.bpmn.instance.SequenceFlow;
 import org.camunda.bpm.model.bpmn.instance.ServiceTask;
@@ -57,47 +58,21 @@ public class DemoBPMNParser {
 
 	public static void main(String[] args) {
 		
-//		BPMNElementsParser parser = new BPMNElementsParser();
         BpmnModelInstance modelInst;
         try {
-        	URL resource = DemoBPMNParser.class.getClassLoader().getResource("BPMN4S_model.bpmn");
+        	URL resource = DemoBPMNParser.class.getClassLoader().getResource("newDiagram.bpmn");
         	File file = new File(resource.toURI());
         	modelInst = Bpmn.readModelFromFile(file);
         	logInfo(modelInst.getModel().getModelName());
         	doRegister();
         	parseBPMN(modelInst);
         	for(Patterns p : patternList) {
-//        		p.generateSnakes();
-//        		String dot = p.generateDot();
         		String fab = p.generateFabSpec();
         		String types = p.generateFabSpecTypes();
         		logInfo(fab);
-//        		logInfo(dot);
         		logInfo(types);
         	}
-        	/*StartEvent se = parser.getStartElement(modelInst);
-       		if(se != null) logInfo("StartEvent: " + se.getName());
-       		
-       		Collection<Task> tList = parser.getTask(modelInst);
-       		tList.forEach(st -> logInfo("Task: " + st.getName()));
-       		for(Task st: tList) {
-       			parser.getOutSignalEventOfTask(modelInst, st);
-       			//parser.getInputDataStoresOfServiceTask(modelInst, st);
-       			//parser.getOutputDataStoresOfServiceTask(modelInst, st);
-       		}
-       		
-       		Collection<ServiceTask> stList = parser.getServiceTask(modelInst);
-       		stList.forEach(st -> logInfo("ServiceTask: " + st.getName()));
-       		for(ServiceTask st: stList) {
-       			parser.getInputDataStoresOfServiceTask(modelInst, st);
-       			parser.getOutputDataStoresOfServiceTask(modelInst, st);
-       		}
-       		
-       		Collection<InclusiveGateway> iGList = parser.getInclusiveGateWay(modelInst);
-       		iGList.forEach(ig -> logInfo("Inclusive Gateway: " + ig.getName()));
-       		for(InclusiveGateway ig : iGList) {
-       			ig.getSucceedingNodes().list().forEach(elm -> logInfo(" Successor: " + elm.getName()));
-       		}*/
+
         } catch (Exception e) { e.printStackTrace(); }
 	}
 	
@@ -334,9 +309,12 @@ public class DemoBPMNParser {
 	
 	private static void flatSubProcess(SubProcess subp, Patterns p) {
 		Collection<SequenceFlow> sfiList = subp.getIncoming();
-		Collection<SequenceFlow> sfoList = subp.getOutgoing();
+		Collection<SequenceFlow> sfoList = subp.getOutgoing();		
+		Collection<DataInputAssociation> diaList =  subp.getDataInputAssociations();
+		Collection<DataOutputAssociation> doaList =  subp.getDataOutputAssociations();
 		
 		for (SequenceFlow sf: sfiList) {
+			logInfo( sf.getSource().getName() + "\t" +  sf.getSource().getElementType().getTypeName());
 			if (sf.getSource() instanceof Task || sf.getSource() instanceof ServiceTask 
 					|| sf.getSource() instanceof Gateway || sf.getSource() instanceof StartEvent) {
 				Collection<StartEvent> seList = subp.getChildElementsByType(StartEvent.class);
@@ -345,6 +323,7 @@ public class DemoBPMNParser {
 					p.addEdge(getElementName(sf.getSource()), getElementName(se), expression);
 				}
 			}
+			
 			if (sf.getSource() instanceof SubProcess) {
 				Collection<EndEvent> eeList = sf.getSource().getChildElementsByType(EndEvent.class);
 				Collection<StartEvent> seList = subp.getChildElementsByType(StartEvent.class);
@@ -359,18 +338,58 @@ public class DemoBPMNParser {
 		
 		for (SequenceFlow sf: sfoList) {
 			if (sf.getTarget() instanceof Task || sf.getTarget() instanceof ServiceTask
-					|| sf.getTarget() instanceof Gateway || sf.getTarget() instanceof EndEvent) {
+					|| sf.getTarget() instanceof Gateway || sf.getTarget() instanceof EndEvent
+					|| (isTopLevel(subp) && sf.getTarget() instanceof IntermediateCatchEvent)) {
 				Collection<EndEvent> eeList = subp.getChildElementsByType(EndEvent.class);
 				String expression = sf.getName()==null ? "": sf.getName();
 				for(EndEvent eevt: eeList) {
 					p.addEdge(getElementName(eevt), getElementName(sf.getTarget()), expression);
 				}
 			}
-			//p.addEdge(t.getName(), sf.getTarget().getName(), sf.getName());
 		}
 		
 		if (isTopLevel(subp)) {
-			p.components.add(new Component(subp.getName()));
+			Component tlcomp = new Component(subp.getName());
+			for (SequenceFlow sf: sfiList) {
+				String expression = "";
+				if (sf.getSource() instanceof IntermediateCatchEvent) {
+					if (sf.getAttributeValueNs("http://magic", "expression") != null) {
+						expression = sf.getAttributeValueNs("http://magic", "expression");
+					}
+					p.addEdge(getElementName(sf.getSource()), getElementName(subp), expression);
+					tlcomp.addIncomingEdge(getElementName(sf.getSource()), expression);
+				}
+			}
+			for (SequenceFlow sf: sfoList) {
+				String expression = "";
+				if (sf.getTarget() instanceof IntermediateCatchEvent) {
+					if (sf.getAttributeValueNs("http://magic", "expression") != null) {
+						expression = sf.getAttributeValueNs("http://magic", "expression");
+					}
+					p.addEdge(getElementName(subp), getElementName(sf.getTarget()), expression);
+					tlcomp.addOutgoingEdge(getElementName(sf.getTarget()), expression);
+				}
+			}
+			for(DataInputAssociation dia : diaList) {
+				String expression = "";
+				if (dia.getAttributeValueNs("http://magic", "expression") != null) {
+					expression = dia.getAttributeValueNs("http://magic", "expression");
+				}
+				for(ItemAwareElement elm : dia.getSources()) {
+					tlcomp.addIncomingEdge(getDataName(elm), expression);
+					p.addEdge(getDataName(elm), getElementName(subp), expression);
+				}
+			}
+			for(DataOutputAssociation doa : doaList) {
+				String expression = "";
+				if (doa.getAttributeValueNs("http://magic", "expression") != null) {
+					expression = doa.getAttributeValueNs("http://magic", "expression");
+				}
+				tlcomp.addOutgoingEdge(getDataName(doa.getTarget()), expression);
+				p.addEdge(subp.getName(), getDataName(doa.getTarget()), expression);
+			}
+			
+			p.components.add(tlcomp);
 		}
 	}
 
@@ -445,7 +464,8 @@ public class DemoBPMNParser {
 		Collection<SequenceFlow> sfoList = gw.getOutgoing();
 		
 		for (SequenceFlow sf: sfiList) {
-			String expression = sf.getName()==null ? "": sf.getName();
+			String expression = sf.getAttributeValueNs("http://magic", "expression");
+			expression = expression == null ? "" : expression;
 			if (flat) {
 				if (!containProcedure(sf.getSource())) {
 					v.addIncomingEdge(getElementName(sf.getSource()), expression);
@@ -458,7 +478,8 @@ public class DemoBPMNParser {
 		}
 		
 		for (SequenceFlow sf: sfoList) {
-			String expression = sf.getName()==null ? "": sf.getName();
+			String expression = sf.getAttributeValueNs("http://magic", "expression");
+			expression = expression == null ? "" : expression;
 			if (flat) {
 				if (!containProcedure(sf.getTarget())) {
 					v.addOutgoingEdge(getElementName(sf.getTarget()), expression);
@@ -716,6 +737,7 @@ public class DemoBPMNParser {
 			}
 		}
 		for(DataOutputAssociation doa : doaList) {
+
 			String expression = "";
 			if (doa.getAttributeValueNs("http://magic", "expression") != null) {
 				expression = doa.getAttributeValueNs("http://magic", "expression");
@@ -750,7 +772,7 @@ public class DemoBPMNParser {
 	
 	private static String getElementName(FlowElement fele) {
 		if(fele.getName() != null) {
-			return fele.getName().replace(" ", "_").replace("/", "Or").replace(".", "").replace("-", "_");
+			return fele.getName();//.replace(" ", "_").replace("/", "Or").replace(".", "").replace("-", "_");
 		} else {
 			return fele.getId();
 		}
