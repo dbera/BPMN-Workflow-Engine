@@ -12,6 +12,14 @@ import java.util.stream.Collectors;
 
 import org.camunda.bpm.model.bpmn.instance.FlowElement;
 
+
+/*
+ * TODO:
+ * 6-2-2024 [] Manage events and other missing gates?
+ * 6-2-2024 [] Some TODOS and FIXMES are inlined.
+ * 6-2-2024 [] Cleanup code.
+ */
+
 public class Patterns {
 	public String name = "graph1";
 	private List<ProcessTask> tasks = new ArrayList<ProcessTask>();
@@ -20,28 +28,7 @@ public class Patterns {
 	public List<DataType> types = new ArrayList<DataType>();
 	public List<Component> components = new ArrayList<Component>();
 	
-	public void addTask(ProcessTask curr) 
-	{
-		System.out.println(" Creating Process Task: " + curr.name);
-		System.out.println(" Type: " + curr.type.toString());
-		System.out.println(" Succ: " + curr.successors);
-		tasks.add(curr);
-		if(curr.type.equals(TaskType.SERVICE_TASK)) {
-			
-		} else if(curr.type.equals(TaskType.EXOR_SPLIT_GATE)) {
-			
-		} else if(curr.type.equals(TaskType.EXOR_JOIN_GATE)) {
-			
-		} else if(curr.type.equals(TaskType.PAR_SPLIT_GATE)) {
-			
-		} else if(curr.type.equals(TaskType.PAR_JOIN_GATE)) {
-			
-		} else if(curr.type.equals(TaskType.START_EVENT)) {
-			
-		} else { // abstract task
-			
-		}
-	}
+	private static String UNIT_TYPE = "UNIT";
 	
 	public void addTask(String _name, TaskType _type, List<ProcessTask> succList) {
 		ProcessTask curr = new ProcessTask(_name, _type, succList);
@@ -65,39 +52,17 @@ public class Patterns {
 		types.add(r);
 	}
 	
-
-	
-	public String generateDot() {
-		StringBuilder b = new StringBuilder("digraph "+ name + " {\n");
-		b.append("  rankdir = LR; nodesep=.25; sep=1;\n");
-		for (Vertex v : vertices.values()) {
-			b.append("  ").append(v.name);
-			b.append(" [shape=ellipse,label=\""+ v.name + v.type.toString() + v.pname + "\"];\n");
-		}
-		
-		for(Edge edge: edges){
-			b.append("  ").append(edge.srcName);
-			b.append(" -> ").append(edge.dstName);
-			b.append(" [label=\"");
-			b.append(edge.expression).append("\"");
-			b.append("]\n");
-		}
-		b.append("}\n");
-		
-		return b.toString();
-	}
-	
 	public String generateFabSpecTypes() {
 		String typess = new String("");
-		typess += "record CTX {\n" + indent("int ctx\n") + "}\n\n";
+		typess += "record UNIT {\n" + indent("int unit\n") + "}\n\n";
 		typess += "enum Verdict { INSPEC OUTOFSPEC }\n\n";
 		for (DataType d: types) { 
-			String type = "record " + d.name + " {\n";
+			String type = "record " + cleanName(d.name) + " {\n";
 			String parameters = "";
 			for (Entry<String, String> e: d.parameters.entrySet()) {
 				String value = String.format("%s",e.getValue());
 				String key = e.getKey();
-				parameters += value + "\t" + e.getKey() + "\n";
+				parameters += cleanName(value) + "\t" + cleanName(e.getKey()) + "\n";
 			}
 			type += indent(parameters) + "}\n";
 			typess += type + "\n";
@@ -136,13 +101,15 @@ public class Patterns {
 		
 		for (String src: c.incomings.keySet()) {
 			String name = cleanName(src);
-			String type = src.split(":")[1];
+			String[] spl = src.split(":");
+			String type = spl.length > 1 ? spl[1] : "UNKNOWN";
 			inStr += type + "\t" + name + "\n";
 		}
 		
 		for (String dst: c.outgoings.keySet()) {
 			String name = cleanName(dst);
-			String type = dst.split(":")[1];
+			String[] spl = dst.split(":");
+			String type = spl.length > 1 ? spl[1] : "UNKNOWN";
 			outStr += type + "\t" + name + "\n";
 		}
 
@@ -168,24 +135,25 @@ public class Patterns {
 			if (v.pname == c.name) {
 				TaskType vtype = v.getType();
 				if ( vtype == TaskType.EXOR_JOIN_GATE || vtype == TaskType.EXOR_SPLIT_GATE) {
-					locals += tabulate("SOME_TYPE_TODO", capAtColon(v.getName())) + "\n";
+					locals += tabulate(UNIT_TYPE, capAtColon(v.getName())) + "\n";
 				}
 			}
 		}
 		//
-		// Edges between tasks, gates, except for XOR gates, introduce places 
+		// Edges introduce places under certain conditions
 		//
 		for (Edge e: edges) {
 			Vertex src = vertices.get(e.srcName);
 			Vertex dst = vertices.get(e.dstName);
 			if (src == null || dst == null) {
+				// FIXME remove edges to subprocesses from <edges> if not needed, then this will not happen
 				logInfo(String.format("WARNING: Cant find vertex %s or %s.", e.srcName, e.dstName));
 			}else {
 				if (src.pname == c.name 
 						&& !isExclusiveGate(src) && !isDataVertex(e.srcName)
 						&& !isExclusiveGate(dst) && !isDataVertex(e.dstName)){
 					assert dst.pname == c.name;
-					locals += tabulate("SOME_TYPE_TODO", capAtColon(e.srcName)+"2"+capAtColon(e.dstName)) + "\n";
+					locals += tabulate(UNIT_TYPE, capAtColon(e.srcName)+"2"+capAtColon(e.dstName)) + "\n";
 				}
 			}
 		}
@@ -194,28 +162,37 @@ public class Patterns {
 	
 
 	private String fabSpecInit(String _cname) {
-		return "init \\\\TODO\n";
+		// TODO
+		return "init\n";
 	}
 
 	private String fabSpecDesc(String _compName) {
 		ArrayList<String> desc = new ArrayList<String>();
 		for (Vertex v: vertices.values()) {
-			if(v.getType() == TaskType.TASK && v.pname == _compName) {
-				String task = "";
-				List<String> inputs = new ArrayList<String>();
-				for(Edge e: v.getIncomingEdges()) {
-					inputs.add(cleanName(e.srcName));
+			if (v.pname == _compName) {
+				if(v.getType() == TaskType.TASK) {
+					String task = "";
+					List<String> inputs = new ArrayList<String>();
+					for(Edge e: v.getIncomingEdges()) {
+						inputs.add(cleanName(e.srcName));
+					}
+					task += "action\t\t\t" + normalizeName(v.getName()) + "\n";
+					task += "case\t\t\t" + "default\n";
+					task += "with-inputs\t\t" + String.join(", ", inputs) + "\n";
+					for(Edge e: v.getOutgoingEdges()) {
+						task += "produces-outputs\t" + cleanName(e.dstName) + "\n";
+						task += e.expression != ""? "updates\n" + indent(e.expression) + "\n" : "";
+					}
+					desc.add(task);
+				} else if (v.getType() == TaskType.PAR_JOIN_GATE || v.getType() == TaskType.PAR_SPLIT_GATE) {
+					String pargate = "action\t\t\t" + normalizeName(v.getName()) + "\n";
+					pargate += "case\t\t\t" + "default\n";
+					pargate += "with-inputs\t\t" + "\n";
+					desc.add(pargate);
 				}
-				task += "action\t\t" + normalizeName(v.getName()) + "\n";
-				task += "case\t\t" + "default\n";
-				task += "with-inputs\t" + String.join(", ", inputs) + "\n";
-				for(Edge e: v.getOutgoingEdges()) {
-					task += "produces-output\t" + cleanName(e.dstName) + "\n";
-					task += e.expression != ""? "updates\n" + indent(e.expression) + "\n" : "";
-				}
-				desc.add(task);
 			}
 		}
+		// TODO: an edge between XOR gates introduces a transition (or collapse XOR gates)
 		return "desc \"" + normalizeName(_compName) + "_Model\"\n\n" + String.join("\n", desc);
 	}
 	
@@ -290,6 +267,26 @@ public class Patterns {
 			System.out.println("An error occurred.");
 			e.printStackTrace();
 		}
+	}
+
+	public String generateDot() {
+		StringBuilder b = new StringBuilder("digraph "+ name + " {\n");
+		b.append("  rankdir = LR; nodesep=.25; sep=1;\n");
+		for (Vertex v : vertices.values()) {
+			b.append("  ").append(v.name);
+			b.append(" [shape=ellipse,label=\""+ v.name + v.type.toString() + v.pname + "\"];\n");
+		}
+		
+		for(Edge edge: edges){
+			b.append("  ").append(edge.srcName);
+			b.append(" -> ").append(edge.dstName);
+			b.append(" [label=\"");
+			b.append(edge.expression).append("\"");
+			b.append("]\n");
+		}
+		b.append("}\n");
+		
+		return b.toString();
 	}
 
 }

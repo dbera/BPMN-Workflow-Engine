@@ -60,7 +60,7 @@ public class DemoBPMNParser {
 		
         BpmnModelInstance modelInst;
         try {
-        	URL resource = DemoBPMNParser.class.getClassLoader().getResource("newDiagram.bpmn");
+        	URL resource = DemoBPMNParser.class.getClassLoader().getResource("simpleDiagram.bpmn");
         	File file = new File(resource.toURI());
         	modelInst = Bpmn.readModelFromFile(file);
         	logInfo(modelInst.getModel().getModelName());
@@ -259,10 +259,8 @@ public class DemoBPMNParser {
 		for(SubProcess subp: subProcessList) {
 			if(subp.getName() != null) {
 				if (!containProcedure(subp)) {
-					//logInfo("Empty subprocess " + subp.getName());
 					parseSubProcess(subp, p);
 				} else {
-					//logInfo("Subprocess procedure " + subp.getName());
 					flatSubProcess(subp, p);
 				}
 			}
@@ -314,7 +312,6 @@ public class DemoBPMNParser {
 		Collection<DataOutputAssociation> doaList =  subp.getDataOutputAssociations();
 		
 		for (SequenceFlow sf: sfiList) {
-			logInfo( sf.getSource().getName() + "\t" +  sf.getSource().getElementType().getTypeName());
 			if (sf.getSource() instanceof Task || sf.getSource() instanceof ServiceTask 
 					|| sf.getSource() instanceof Gateway || sf.getSource() instanceof StartEvent) {
 				Collection<StartEvent> seList = subp.getChildElementsByType(StartEvent.class);
@@ -348,7 +345,7 @@ public class DemoBPMNParser {
 			}
 		}
 		
-		if (isTopLevel(subp)) {
+		if (isTopLevel(subp)) { // add info about components
 			Component tlcomp = new Component(subp.getName());
 			for (SequenceFlow sf: sfiList) {
 				String expression = "";
@@ -388,7 +385,6 @@ public class DemoBPMNParser {
 				tlcomp.addOutgoingEdge(getDataName(doa.getTarget()), expression);
 				p.addEdge(subp.getName(), getDataName(doa.getTarget()), expression);
 			}
-			
 			p.components.add(tlcomp);
 		}
 	}
@@ -409,16 +405,6 @@ public class DemoBPMNParser {
 				}
 			}
 		}
-		
-//		String name = "dataStore";
-//		if(dsRef.getName() != null) {
-//			name = getElementName(dsRef);
-//		} else {
-//			name = dsRef.getId();
-//		}
-		//Vertex v = new Vertex(name);
-		//v.setType(TaskType.DATA_STORE);
-		//p.addVertex(v);
 	}
 	
 	private static void parseDataObjectRef(DataObjectReference doRef, Patterns p) {
@@ -668,7 +654,6 @@ public class DemoBPMNParser {
 			} else {
 				v.addOutgoingEdge(getElementName(sf.getTarget()), expression);
 			}
-			//p.addEdge(t.getName(), sf.getTarget().getName(), sf.getName());
 		}
 		
 		for(DataInputAssociation dia : diaList) {
@@ -772,7 +757,7 @@ public class DemoBPMNParser {
 	
 	private static String getElementName(FlowElement fele) {
 		if(fele.getName() != null) {
-			return fele.getName();//.replace(" ", "_").replace("/", "Or").replace(".", "").replace("-", "_");
+			return fele.getName();
 		} else {
 			return fele.getId();
 		}
