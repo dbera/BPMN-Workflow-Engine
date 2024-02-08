@@ -18,6 +18,7 @@ import org.camunda.bpm.model.bpmn.instance.FlowElement;
  * 6-2-2024 [] Manage events and other missing gates?
  * 6-2-2024 [] Some TODOS and FIXMES are inlined.
  * 6-2-2024 [] Cleanup code.
+ * 7-2-2024 [] Check that model is valid.
  */
 
 public class Patterns {
@@ -170,7 +171,9 @@ public class Patterns {
 		ArrayList<String> desc = new ArrayList<String>();
 		for (Vertex v: vertices.values()) {
 			if (v.pname == _compName) {
-				if(v.getType() == TaskType.TASK) {
+				if(v.getType() == TaskType.TASK 
+						|| v.getType() == TaskType.PAR_JOIN_GATE 
+						|| v.getType() == TaskType.PAR_SPLIT_GATE) {
 					String task = "";
 					List<String> inputs = new ArrayList<String>();
 					for(Edge e: v.getIncomingEdges()) {
@@ -184,12 +187,13 @@ public class Patterns {
 						task += e.expression != ""? "updates\n" + indent(e.expression) + "\n" : "";
 					}
 					desc.add(task);
-				} else if (v.getType() == TaskType.PAR_JOIN_GATE || v.getType() == TaskType.PAR_SPLIT_GATE) {
-					String pargate = "action\t\t\t" + normalizeName(v.getName()) + "\n";
-					pargate += "case\t\t\t" + "default\n";
-					pargate += "with-inputs\t\t" + "\n";
-					desc.add(pargate);
 				}
+//				} else if (v.getType() == TaskType.PAR_JOIN_GATE || v.getType() == TaskType.PAR_SPLIT_GATE) {
+//					String pargate = "action\t\t\t" + normalizeName(v.getName()) + "\n";
+//					pargate += "case\t\t\t" + "default\n";
+//					pargate += "with-inputs\t\t" + "\n";
+//					desc.add(pargate);
+//				}
 			}
 		}
 		// TODO: an edge between XOR gates introduces a transition (or collapse XOR gates)

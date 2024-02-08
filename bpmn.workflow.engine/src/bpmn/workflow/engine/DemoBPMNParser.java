@@ -60,7 +60,7 @@ public class DemoBPMNParser {
 		
         BpmnModelInstance modelInst;
         try {
-        	URL resource = DemoBPMNParser.class.getClassLoader().getResource("simpleDiagram.bpmn");
+        	URL resource = DemoBPMNParser.class.getClassLoader().getResource("newDiagram.bpmn");
         	File file = new File(resource.toURI());
         	modelInst = Bpmn.readModelFromFile(file);
         	logInfo(modelInst.getModel().getModelName());
