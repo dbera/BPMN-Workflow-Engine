@@ -1,5 +1,7 @@
 package bpmn.workflow.engine;
 import java.io.File;
+import java.io.FileWriter;
+import java.io.IOException;
 import java.net.URL;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -63,7 +65,8 @@ public class DemoBPMNParser {
         	URL resource = DemoBPMNParser.class.getClassLoader().getResource("newDiagram.bpmn");
         	File file = new File(resource.toURI());
         	modelInst = Bpmn.readModelFromFile(file);
-        	logInfo(modelInst.getModel().getModelName());
+        	String modelName = modelInst.getModel().getModelName().replace(' ', '_');
+        	logInfo(modelName);
         	doRegister();
         	parseBPMN(modelInst);
         	for(Patterns p : patternList) {
@@ -71,10 +74,28 @@ public class DemoBPMNParser {
         		String types = p.generateFabSpecTypes();
         		logInfo(fab);
         		logInfo(types);
+        		writeToFile(modelName + ".ps", fab);
+        		writeToFile(modelName + ".types", types);        	    
         	}
 
         } catch (Exception e) { e.printStackTrace(); }
 	}
+	
+	private static void writeToFile(String filename, String text) {
+		File file = new File(filename);
+	    FileWriter writer = null;
+	    try {
+	        writer = new FileWriter(file);
+	        writer.write(text);
+	    } catch (IOException e) {
+	        e.printStackTrace();
+	    } finally {
+	        if (writer != null) try { writer.close(); } catch (IOException ignore) {}
+	    }
+	    logInfo(String.format("File %s generated at %s%n", filename, file.getAbsolutePath()));
+	}
+	 
+	
 	
 	private static void doRegister() {
 		TypesImpl.registerType(Bpmn.INSTANCE.getBpmnModelBuilder());
@@ -231,6 +252,7 @@ public class DemoBPMNParser {
 	private static void getFlatPatterns(BpmnModelInstance modelInst) {
 		BPMNParser parser = new BPMNParser();
 		Patterns p = new Patterns();
+		p.setModelName(modelInst.getModel().getModelName().replace(' ', '_'));
 		Collection<Task> taskList = parser.getTask(modelInst);
 		Collection<ServiceTask> serviceTaskList = parser.getServiceTask(modelInst);
 		Collection<BoundaryEvent> beList = parser.getBoundaryEvents(modelInst);

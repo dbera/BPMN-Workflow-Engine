@@ -8,6 +8,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map.Entry;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 import org.camunda.bpm.model.bpmn.instance.FlowElement;
@@ -30,6 +31,11 @@ public class Patterns {
 	public List<Component> components = new ArrayList<Component>();
 	
 	private static String UNIT_TYPE = "UNIT";
+	
+	
+	public void setModelName(String _name) {
+		name = _name;
+	}
 	
 	public void addTask(String _name, TaskType _type, List<ProcessTask> succList) {
 		ProcessTask curr = new ProcessTask(_name, _type, succList);
@@ -63,12 +69,22 @@ public class Patterns {
 			for (Entry<String, String> e: d.parameters.entrySet()) {
 				String value = String.format("%s",e.getValue());
 				String key = e.getKey();
-				parameters += cleanName(value) + "\t" + cleanName(e.getKey()) + "\n";
+				parameters += normalizeType(cleanName(value)) + "\t" + cleanName(e.getKey()) + "\n";
 			}
 			type += indent(parameters) + "}\n";
 			typess += type + "\n";
 		}
 		return typess;
+	}
+	
+	private String normalizeType(String type) {
+		if (type.equals("String") || type.equals("Int")) {
+			return type.toLowerCase();
+		}else if (type.equals("Boolean")) {
+			return "bool";
+		}else {
+			return type;
+		}
 	}
 	
 	public String generateFabSpec() {
