@@ -62,7 +62,7 @@ public class BPMN4SModelValidator {
 		}
 		
 		veredict = veredict && validateNoDanglingInputOutput();
-		return true;		
+		return veredict;		
 	}
 	
 	private static Boolean isTopLevel (ModelElementInstance elemInst) {
@@ -89,32 +89,33 @@ public class BPMN4SModelValidator {
 			Collection<DataOutputAssociation> doaList =  comp.getDataOutputAssociations();
 			Collection<SequenceFlow> sfiList = comp.getIncoming();
 			Collection<SequenceFlow> sfoList = comp.getOutgoing();
-//			logInfo(String.format("# of dia for component %s is %d", comp.getName(), diaList.size()));
-			
 			for (DataInputAssociation dia: diaList) {
-//				logInfo("Dia target " + dia.getTarget().getName());
 				for (ItemAwareElement src: dia.getSources()) {
 					inputs.add(src.getName());
 				}
 			}
 			for (DataOutputAssociation doa: doaList) {
-//				logInfo("Doa target " + doa.getTarget().getName());
 				outputs.add(doa.getTarget().getName());
 			}
 			for (SequenceFlow sfi: sfiList) {
 				if ( sfi.getSource() instanceof IntermediateCatchEvent ) {
 					inputs.add(sfi.getSource().getName());
 				}
-				
 			}
-			
+			for (SequenceFlow sfo: sfoList) {
+				if ( sfo.getTarget() instanceof IntermediateCatchEvent ) {
+					outputs.add(sfo.getTarget().getName());
+				}
+			}
 		}
 		Set<String> diff = new HashSet<String>(inputs);
 		diff.removeAll(outputs);
+		outputs.removeAll(inputs);
+		diff.addAll(outputs);
 		if (diff.isEmpty()) {
 			return true;
 		} else {
-			logError("[ERROR] Invalid Model. Dangling data elements: " + String.join(", ", diff));
+			logError("ERROR: Invalid Model. REQ-001 Dangling data elements: " + String.join(", ", diff) + ".");
 			return false;
 		}
 	}

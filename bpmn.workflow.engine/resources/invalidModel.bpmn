@@ -153,16 +153,22 @@
   </bpmn2:process>
   <bpmndi:BPMNDiagram id="BPMNDiagram_1">
     <bpmndi:BPMNPlane id="BPMNPlane_1" bpmnElement="Process_1">
-      <bpmndi:BPMNShape id="DataObjectReference_1yr89h7_di" bpmnElement="DataObjectReference_1yr89h7">
-        <dc:Bounds x="402" y="165" width="36" height="50" />
+      <bpmndi:BPMNShape id="Event_12uy2rv_di" bpmnElement="Event_1td7n10">
+        <dc:Bounds x="862" y="172" width="36" height="36" />
         <bpmndi:BPMNLabel>
-          <dc:Bounds x="392" y="222" width="57" height="14" />
+          <dc:Bounds x="851" y="215" width="58" height="14" />
         </bpmndi:BPMNLabel>
       </bpmndi:BPMNShape>
-      <bpmndi:BPMNShape id="Event_12uy2rv_di" bpmnElement="Event_1td7n10">
-        <dc:Bounds x="862" y="262" width="36" height="36" />
+      <bpmndi:BPMNShape id="DataObjectReference_1yr89h7_di" bpmnElement="DataObjectReference_1yr89h7">
+        <dc:Bounds x="462" y="165" width="36" height="50" />
         <bpmndi:BPMNLabel>
-          <dc:Bounds x="851" y="305" width="58" height="14" />
+          <dc:Bounds x="451" y="141" width="57" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="DataStoreReference_0m5bcm6_di" bpmnElement="DataStoreReference_0m5bcm6">
+        <dc:Bounds x="985" y="335" width="50" height="50" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="988" y="392" width="45" height="14" />
         </bpmndi:BPMNLabel>
       </bpmndi:BPMNShape>
       <bpmndi:BPMNShape id="Activity_1gj1nx8_di" bpmnElement="Activity_1gj1nx8" isExpanded="false">
@@ -191,12 +197,6 @@
           <dc:Bounds x="603" y="385" width="55" height="14" />
         </bpmndi:BPMNLabel>
       </bpmndi:BPMNShape>
-      <bpmndi:BPMNShape id="DataStoreReference_0m5bcm6_di" bpmnElement="DataStoreReference_0m5bcm6">
-        <dc:Bounds x="1045" y="385" width="50" height="50" />
-        <bpmndi:BPMNLabel>
-          <dc:Bounds x="1048" y="442" width="45" height="14" />
-        </bpmndi:BPMNLabel>
-      </bpmndi:BPMNShape>
       <bpmndi:BPMNEdge id="DataInputAssociation_0at9962_di" bpmnElement="DataInputAssociation_0at9962">
         <di:waypoint x="612" y="474" />
         <di:waypoint x="525" y="399" />
@@ -222,14 +222,14 @@
         <di:waypoint x="720" y="360" />
       </bpmndi:BPMNEdge>
       <bpmndi:BPMNEdge id="DataInputAssociation_1oluocu_di" bpmnElement="DataInputAssociation_1oluocu">
-        <di:waypoint x="430" y="215" />
-        <di:waypoint x="472" y="320" />
+        <di:waypoint x="480" y="215" />
+        <di:waypoint x="480" y="320" />
       </bpmndi:BPMNEdge>
       <bpmndi:BPMNEdge id="Flow_1uwc0pg_di" bpmnElement="Flow_1uwc0pg">
         <di:waypoint x="820" y="360" />
         <di:waypoint x="841" y="360" />
-        <di:waypoint x="841" y="280" />
-        <di:waypoint x="862" y="280" />
+        <di:waypoint x="841" y="190" />
+        <di:waypoint x="862" y="190" />
       </bpmndi:BPMNEdge>
     </bpmndi:BPMNPlane>
   </bpmndi:BPMNDiagram>

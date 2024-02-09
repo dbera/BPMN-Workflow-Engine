@@ -66,7 +66,8 @@ public class BPMNToFabSpec {
         	doRegister();
         	parseBPMN(modelInst);
         	boolean valid = BPMN4SModelValidator.validate(modelInst);
-        	logInfo(String.format("%b", valid));
+        	if (!valid)
+        		logInfo("WARNING: Compiling an INVALID BPMN4S input model.");
         	for(Patterns p : patternList) {
         		String fab = p.generateFabSpec();
         		String types = p.generateFabSpecTypes();
