@@ -88,8 +88,8 @@ public class Patterns {
 	}
 	
 	public String generateFabSpec() {
-		String TYPES_FILE_NAME = "data.types";
-		StringBuilder strb = new StringBuilder(String.format("import %s;\n", TYPES_FILE_NAME));
+		String TYPES_FILE_NAME = String.format("\"%s.types\"", name);
+		StringBuilder strb = new StringBuilder(String.format("import %s\n", TYPES_FILE_NAME));
 		strb.append("specification " +  name + "\n{\n");
 		for (Component c: components) {
 			String cname = normalizeName(c.name);
@@ -108,6 +108,7 @@ public class Patterns {
 			component += "}\n\n";
 			strb.append(indent(component));			
 		}
+		strb.append(indent("depth-limits 20\n"));
 		strb.append("}\n");
 		return strb.toString();
 	}
@@ -180,7 +181,23 @@ public class Patterns {
 
 	private String fabSpecInit(String _cname) {
 		// TODO
-		return "init\n";
+		return "// init\n";
+	}
+	
+	
+	private Boolean isAPlace (String name) {
+		Vertex v = vertices.get(name);
+		if (v != null) {
+			TaskType t = v.getType();
+			return t == TaskType.DATA_OBJECT || t == TaskType.CATCH_EVENT 
+					|| t == TaskType.EXOR_SPLIT_GATE || t == TaskType.EXOR_JOIN_GATE;
+		} else {
+//			throw new Exception("No vertex named " +  name);
+			logInfo("No vertex named " +  name);
+			return false;
+		}
+		 
+		
 	}
 
 	private String fabSpecDesc(String _compName) {
@@ -193,13 +210,22 @@ public class Patterns {
 					String task = "";
 					List<String> inputs = new ArrayList<String>();
 					for(Edge e: v.getIncomingEdges()) {
-						inputs.add(cleanName(e.srcName));
+						if (isAPlace(e.srcName)) {
+							inputs.add(cleanName(e.srcName));
+						} else {
+							inputs.add(cleanName(e.srcName) + "2" + v.getName());
+						}
 					}
 					task += "action\t\t\t" + normalizeName(v.getName()) + "\n";
 					task += "case\t\t\t" + "default\n";
 					task += "with-inputs\t\t" + String.join(", ", inputs) + "\n";
 					for(Edge e: v.getOutgoingEdges()) {
-						task += "produces-outputs\t" + cleanName(e.dstName) + "\n";
+						if (isAPlace(e.dstName)) {
+							task += "produces-outputs\t" + cleanName(e.dstName) + "\n";
+						} else {
+							task += "produces-outputs\t" + v.getName() + "2" + cleanName(e.dstName) + "\n";	
+						}
+						
 						task += e.expression != ""? "updates\n" + indent(e.expression) + "\n" : "";
 					}
 					desc.add(task);
@@ -232,8 +258,12 @@ public class Patterns {
 		Vertex v = vertices.get(name);
 		if (v != null) {
 			return v.type == TaskType.DATA_OBJECT || v.type == TaskType.CATCH_EVENT;
+		} else {
+//			throw new Exception("No vertex named " +  name);
+			logInfo("No vertex named " +  name);
+			return false;
 		}
-		return false;
+		
 	}
 
 	private Boolean isExclusiveGate(Vertex v) {
