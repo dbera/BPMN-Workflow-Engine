@@ -58,7 +58,7 @@ public class BPMNToFabSpec {
 		
         BpmnModelInstance modelInst;
         try {
-        	URL resource = DemoBPMNParser.class.getClassLoader().getResource("invalidModel.bpmn");
+        	URL resource = DemoBPMNParser.class.getClassLoader().getResource("simpleDiagram.bpmn");
         	File file = new File(resource.toURI());
         	modelInst = Bpmn.readModelFromFile(file);
         	String modelName = modelInst.getModel().getModelName().replace(' ', '_');

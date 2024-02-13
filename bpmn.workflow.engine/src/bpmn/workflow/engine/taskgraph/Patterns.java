@@ -131,6 +131,8 @@ public class Patterns {
 			outStr += type + "\t" + name + "\n";
 		}
 
+		if (c.incomings.keySet().isEmpty()) { inStr = "//" + inStr; }
+		if (c.outgoings.keySet().isEmpty()) { outStr = "//" + outStr; }
 		return inStr + "\n" + outStr;
 	}
 	
@@ -143,7 +145,9 @@ public class Patterns {
 			if( isDataVertex(v.getName()) && v.pname == c.name 
 					&& !c.getIncomingEdges().keySet().contains(v.getName()) 
 					&& !c.getOutgoingEdges().keySet().contains(v.getName())) {
-				locals += tabulate(cleanName(v.getDataType()), cleanName(v.getName())) + "\n";
+				String t = cleanName(v.getDataType());
+				t = cleanName(v.getDataType()) == "" ? "UNKNOWN" : t;
+				locals += tabulate(t, cleanName(v.getName())) + "\n";
 			}
 		}
 		//
@@ -153,7 +157,7 @@ public class Patterns {
 			if (v.pname == c.name) {
 				TaskType vtype = v.getType();
 				if ( vtype == TaskType.EXOR_JOIN_GATE || vtype == TaskType.EXOR_SPLIT_GATE) {
-					locals += tabulate(UNIT_TYPE, capAtColon(v.getName())) + "\n";
+					locals += tabulate(UNIT_TYPE, cleanName(v.getName())) + "\n";
 				}
 			}
 		}
@@ -171,7 +175,7 @@ public class Patterns {
 						&& !isExclusiveGate(src) && !isDataVertex(e.srcName)
 						&& !isExclusiveGate(dst) && !isDataVertex(e.dstName)){
 					assert dst.pname == c.name;
-					locals += tabulate(UNIT_TYPE, capAtColon(e.srcName)+"2"+capAtColon(e.dstName)) + "\n";
+					locals += tabulate(UNIT_TYPE, cleanName(e.srcName)+"2"+cleanName(e.dstName)) + "\n";
 				}
 			}
 		}
@@ -213,7 +217,7 @@ public class Patterns {
 						if (isAPlace(e.srcName)) {
 							inputs.add(cleanName(e.srcName));
 						} else {
-							inputs.add(cleanName(e.srcName) + "2" + v.getName());
+							inputs.add(cleanName(e.srcName) + "2" + cleanName(v.getName()));
 						}
 					}
 					task += "action\t\t\t" + normalizeName(v.getName()) + "\n";
@@ -223,19 +227,13 @@ public class Patterns {
 						if (isAPlace(e.dstName)) {
 							task += "produces-outputs\t" + cleanName(e.dstName) + "\n";
 						} else {
-							task += "produces-outputs\t" + v.getName() + "2" + cleanName(e.dstName) + "\n";	
+							task += "produces-outputs\t" + cleanName(v.getName()) + "2" + cleanName(e.dstName) + "\n";	
 						}
 						
 						task += e.expression != ""? "updates\n" + indent(e.expression) + "\n" : "";
 					}
 					desc.add(task);
 				}
-//				} else if (v.getType() == TaskType.PAR_JOIN_GATE || v.getType() == TaskType.PAR_SPLIT_GATE) {
-//					String pargate = "action\t\t\t" + normalizeName(v.getName()) + "\n";
-//					pargate += "case\t\t\t" + "default\n";
-//					pargate += "with-inputs\t\t" + "\n";
-//					desc.add(pargate);
-//				}
 			}
 		}
 		// TODO: an edge between XOR gates introduces a transition (or collapse XOR gates)
@@ -247,7 +245,7 @@ public class Patterns {
 	}
 	
 	private static String normalizeName(String name) {
-		return name.replace(" ", "_");
+		return name.replace(" ", "_").replace("+", "_plus_");
 	}
 	
 	private String cleanName(String name) {
