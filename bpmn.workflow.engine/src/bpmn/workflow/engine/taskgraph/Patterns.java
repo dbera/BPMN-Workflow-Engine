@@ -43,7 +43,12 @@ public class Patterns {
 	}
 	
 	public void addVertex(Vertex v) {
-		vertices.put(v.name, v);
+		vertices.put(normalizeName(v.name), v);
+	}
+	
+	private Vertex getVertex(String name) {
+		String _name = normalizeName(name);
+		return vertices.get(_name);
 	}
 	
 	public void addEdge(Edge edge) {
@@ -165,11 +170,11 @@ public class Patterns {
 		// Edges introduce places under certain conditions
 		//
 		for (Edge e: edges) {
-			Vertex src = vertices.get(e.srcName);
-			Vertex dst = vertices.get(e.dstName);
+			Vertex src = getVertex(e.srcName);
+			Vertex dst = getVertex(e.dstName);
 			if (src == null || dst == null) {
 				// FIXME remove edges to subprocesses from <edges> if not needed, then this will not happen
-				logInfo(String.format("WARNING: Cant find vertex %s or %s.", e.srcName, e.dstName));
+				logInfo(String.format("WARNING: Can't find vertex %s or %s.", e.srcName, e.dstName));
 			}else {
 				if (src.pname == c.name 
 						&& !isExclusiveGate(src) && !isDataVertex(e.srcName)
@@ -181,7 +186,7 @@ public class Patterns {
 		}
 		return locals;
 	}
-	
+
 
 	private String fabSpecInit(String _cname) {
 		// TODO
@@ -190,7 +195,7 @@ public class Patterns {
 	
 	
 	private Boolean isAPlace (String name) {
-		Vertex v = vertices.get(name);
+		Vertex v = getVertex(name);
 		if (v != null) {
 			TaskType t = v.getType();
 			return t == TaskType.DATA_OBJECT || t == TaskType.CATCH_EVENT 
@@ -253,7 +258,7 @@ public class Patterns {
 	}
 
 	public Boolean isDataVertex (String name) {
-		Vertex v = vertices.get(name);
+		Vertex v = getVertex(name);
 		if (v != null) {
 			return v.type == TaskType.DATA_OBJECT || v.type == TaskType.CATCH_EVENT;
 		} else {
