@@ -56,12 +56,13 @@ public class BPMN4SModelValidator {
 		components = new HashMap<String, SubProcess>();
 		for(SubProcess sp: subProcess) {
 			if(isTopLevel(sp)) {
-				logInfo("Adding component " + sp.getName());
 				components.put(sp.getName(), sp);
 			}
 		}
 		
-		veredict = veredict && validateNoDanglingInputOutput();
+		veredict = validateNoDanglingInputOutput()
+				&& validateTasksUniqueNames();
+		
 		return veredict;		
 	}
 	
@@ -118,6 +119,28 @@ public class BPMN4SModelValidator {
 			logError("ERROR: Invalid Model. REQ-001 Dangling data elements: " + String.join(", ", diff) + ".");
 			return false;
 		}
+	}
+	
+	/**
+	 * [REQ-002]
+	 * validateTasksUniqueNames
+	 * Every task name in the model should be globally unique. 
+	 * @return true if validation passes, false otherwise.
+	 */
+	private static boolean validateTasksUniqueNames () {
+		Set<String> taskNames = new HashSet<String>();
+		Set<String> duplicates = new HashSet<String>();
+		for (Task t: tasks) {
+			if (taskNames.contains(t.getName())) {
+				duplicates.add(t.getName());
+			} else {
+				taskNames.add(t.getName());
+			}
+		}
+		if (!duplicates.isEmpty()) {
+			logError("ERROR: Invalid Model. REQ-002 Duplicated task names: " + String.join(", ", duplicates));
+		}
+		return duplicates.isEmpty();
 	}
 	
 	

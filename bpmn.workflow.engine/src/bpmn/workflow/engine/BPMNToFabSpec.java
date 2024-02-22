@@ -58,7 +58,7 @@ public class BPMNToFabSpec {
 		
         BpmnModelInstance modelInst;
         try {
-        	URL resource = DemoBPMNParser.class.getClassLoader().getResource("BPMN4S_OVO3_BL4_v2.bpmn");
+        	URL resource = DemoBPMNParser.class.getClassLoader().getResource("fab_with_types.bpmn");
         	File file = new File(resource.toURI());
         	modelInst = Bpmn.readModelFromFile(file);
         	String modelName = modelInst.getModel().getModelName().replace(' ', '_');
@@ -231,7 +231,7 @@ public class BPMNToFabSpec {
 					if (sf.getAttributeValueNs("http://magic", "expression") != null) {
 						expression = sf.getAttributeValueNs("http://magic", "expression");
 					}
-					p.addEdge(getElementName(sf.getSource()), getElementName(subp), expression);
+//					p.addEdge(getElementName(sf.getSource()), getElementName(subp), expression);
 					tlcomp.addIncomingEdge(getElementName(sf.getSource()), expression);
 				}
 			}
@@ -241,7 +241,7 @@ public class BPMNToFabSpec {
 					if (sf.getAttributeValueNs("http://magic", "expression") != null) {
 						expression = sf.getAttributeValueNs("http://magic", "expression");
 					}
-					p.addEdge(getElementName(subp), getElementName(sf.getTarget()), expression);
+//					p.addEdge(getElementName(subp), getElementName(sf.getTarget()), expression);
 					tlcomp.addOutgoingEdge(getElementName(sf.getTarget()), expression);
 				}
 			}
@@ -252,7 +252,7 @@ public class BPMNToFabSpec {
 				}
 				for(ItemAwareElement elm : dia.getSources()) {
 					tlcomp.addIncomingEdge(getDataName(elm), expression);
-					p.addEdge(getDataName(elm), getElementName(subp), expression);
+//					p.addEdge(getDataName(elm), getElementName(subp), expression);
 				}
 			}
 			for(DataOutputAssociation doa : doaList) {
@@ -261,7 +261,7 @@ public class BPMNToFabSpec {
 					expression = doa.getAttributeValueNs("http://magic", "expression");
 				}
 				tlcomp.addOutgoingEdge(getDataName(doa.getTarget()), expression);
-				p.addEdge(subp.getName(), getDataName(doa.getTarget()), expression);
+//				p.addEdge(subp.getName(), getDataName(doa.getTarget()), expression);
 			}
 			p.components.add(tlcomp);
 		}
@@ -627,7 +627,7 @@ public class BPMNToFabSpec {
 	
 	private static String getDataName(ItemAwareElement elm) {
 		if (elm.getName() != null) {
-			return elm.getName().replace(" ", "_").replace("/", "Or");
+			return elm.getName();//.replace(" ", "_").replace("/", "Or");
 		} else {
 			return elm.getId();
 		}

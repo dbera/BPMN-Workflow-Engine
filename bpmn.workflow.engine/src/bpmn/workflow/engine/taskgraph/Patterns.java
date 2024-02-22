@@ -142,7 +142,7 @@ public class Patterns {
 	}
 	
 	private String fabSpecLocal(Component c) {
-		String locals = "local\n";
+		String locals = "";
 		//
 		// All data vertices are places (if they are not inputs or outputs)
 		//
@@ -183,6 +183,9 @@ public class Patterns {
 					locals += tabulate(UNIT_TYPE, cleanName(e.srcName)+"2"+cleanName(e.dstName)) + "\n";
 				}
 			}
+		}
+		if (!locals.isBlank()) {
+			locals = "local\n" + locals;
 		}
 		return locals;
 	}
