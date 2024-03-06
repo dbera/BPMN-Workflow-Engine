@@ -61,7 +61,8 @@ public class BPMN4SModelValidator {
 		}
 		
 		veredict = validateNoDanglingInputOutput()
-				&& validateTasksUniqueNames();
+				&& validateTasksUniqueNames()
+				&& validateTopLevelOnlySubprocessAndData();
 		
 		return veredict;		
 	}
@@ -143,5 +144,12 @@ public class BPMN4SModelValidator {
 		return duplicates.isEmpty();
 	}
 	
-	
+	/**
+	 * [REQ-003]
+	 * validateTopLevelOnlySubprocessAndData
+	 * TODO
+	 */
+	private static boolean validateTopLevelOnlySubprocessAndData () {
+		return true; // TODO
+	}
 }

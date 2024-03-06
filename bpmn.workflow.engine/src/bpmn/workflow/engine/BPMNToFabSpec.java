@@ -58,10 +58,10 @@ public class BPMNToFabSpec {
 		
         BpmnModelInstance modelInst;
         try {
-        	URL resource = DemoBPMNParser.class.getClassLoader().getResource("fab_with_types.bpmn");
+        	URL resource = DemoBPMNParser.class.getClassLoader().getResource("HMQ.bpmn");
         	File file = new File(resource.toURI());
         	modelInst = Bpmn.readModelFromFile(file);
-        	String modelName = modelInst.getModel().getModelName().replace(' ', '_');
+        	String modelName = modelInst.getModel().getModelName().replaceAll("\\W", "_");
         	logInfo(modelName);
         	doRegister();
         	parseBPMN(modelInst);

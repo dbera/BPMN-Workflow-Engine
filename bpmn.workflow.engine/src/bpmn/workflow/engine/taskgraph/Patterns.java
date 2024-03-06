@@ -180,7 +180,7 @@ public class Patterns {
 						&& !isExclusiveGate(src) && !isDataVertex(e.srcName)
 						&& !isExclusiveGate(dst) && !isDataVertex(e.dstName)){
 					assert dst.pname == c.name;
-					locals += tabulate(UNIT_TYPE, cleanName(e.srcName)+"2"+cleanName(e.dstName)) + "\n";
+					locals += tabulate(UNIT_TYPE, cleanName(e.srcName)+"_to_"+cleanName(e.dstName)) + "\n";
 				}
 			}
 		}
@@ -225,7 +225,7 @@ public class Patterns {
 						if (isAPlace(e.srcName)) {
 							inputs.add(cleanName(e.srcName));
 						} else {
-							inputs.add(cleanName(e.srcName) + "2" + cleanName(v.getName()));
+							inputs.add(cleanName(e.srcName) + "_to_" + cleanName(v.getName()));
 						}
 					}
 					task += "action\t\t\t" + normalizeName(v.getName()) + "\n";
@@ -235,7 +235,7 @@ public class Patterns {
 						if (isAPlace(e.dstName)) {
 							task += "produces-outputs\t" + cleanName(e.dstName) + "\n";
 						} else {
-							task += "produces-outputs\t" + cleanName(v.getName()) + "2" + cleanName(e.dstName) + "\n";	
+							task += "produces-outputs\t" + cleanName(v.getName()) + "_to_" + cleanName(e.dstName) + "\n";	
 						}
 						
 						task += e.expression != ""? "updates\n" + indent(e.expression) + "\n" : "";
@@ -253,7 +253,7 @@ public class Patterns {
 	}
 	
 	private static String normalizeName(String name) {
-		return name.replace(" ", "_").replace("+", "_plus_");
+		return name.replaceAll("\\W", "_").replace("+", "_plus_");
 	}
 	
 	private String cleanName(String name) {
